@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="/static/libs/bootstrap/bootstrap-5.3.0.css" rel="stylesheet">
+    <link href="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.css" rel="stylesheet">
+    <link href="/static/css/page.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+
+    <title>Persona - {{ persona.cognome }} {{ persona.nome }}</title>
+</head>
+
+<body>
+
+    {% include 'sidebar.html' %}
+
+    <div class="content">
+
+        <div class="container">
+            <h1>{{ persona.cognome }} {{ persona.nome }}</h1>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Informazioni Personali</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Cognome:</strong> {{ persona.cognome }}</p>
+                            <p><strong>Nome:</strong> {{ persona.nome }}</p>
+                            <p><strong>Data di nascita:</strong> {{ persona.data_nascita }}</p>
+                            <p><strong>Età:</strong> {{ persona.eta }}</p>
+                            <p><strong>Luogo di nascita:</strong> {{ persona.luogo_nascita }}</p>
+                            <p><strong>Genere:</strong> {{ persona.genere }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Città:</strong> {{ persona.citta }}</p>
+                            <p><strong>Documento:</strong> {{ persona.documento }}</p>
+                            <p><strong>Telefono:</strong> {{ persona.telefono }}</p>
+                            <p><strong>Stato civile:</strong> {{ persona.stato_civile }}</p>
+                            <p><strong>Figli:</strong> {{ persona.figli }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Situazione Abitativa e Sociale</h5>
+                    <p><strong>Condizione abitativa:</strong> {{ persona.condizione_abitativa }}</p>
+                    <p><strong>Categoria ETHOS:</strong> {{ persona.categoria_ethos }}</p>
+                    <p><strong>Residenza:</strong> {{ persona.residenza }}</p>
+                    <p><strong>Servizi sociali:</strong> {{ persona.servizi_sociali }}</p>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Lavoro e Istruzione</h5>
+                    <p><strong>Lavoro:</strong> {{ persona.lavoro }}</p>
+                    <p><strong>Istruzione:</strong> {{ persona.istruzione }}</p>
+                    <p><strong>In carico presso:</strong> {{ persona.in_carico_presso }}</p>
+                </div>
+            </div>
+
+            <!-- Sezioni espandibili per Servizi e Bisogni -->
+            <div class="accordion mt-4" id="accordionServiziBisogni">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingServizi">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseServizi" aria-expanded="false" aria-controls="collapseServizi">
+                            Servizi
+                        </button>
+                    </h2>
+                    <div id="collapseServizi" class="accordion-collapse collapse" aria-labelledby="headingServizi" data-bs-parent="#accordionServiziBisogni">
+                        <div class="accordion-body" id="servizi-content">
+                            <p class="text-muted">Caricamento servizi...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingBisogni">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBisogni" aria-expanded="false" aria-controls="collapseBisogni">
+                            Bisogni
+                        </button>
+                    </h2>
+                    <div id="collapseBisogni" class="accordion-collapse collapse" aria-labelledby="headingBisogni" data-bs-parent="#accordionServiziBisogni">
+                        <div class="accordion-body" id="bisogni-content">
+                            <p class="text-muted">Caricamento bisogni...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="/persone" class="btn btn-secondary">Torna alla lista</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        window.personaData = {{ persona | tojson }};
+    </script>
+    <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
+    <script src="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.js"></script>
+    <script src="/static/js/persona.js"></script>
+</body>
+
+</html>

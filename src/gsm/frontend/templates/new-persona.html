@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="/static/libs/bootstrap/bootstrap-5.3.0.css" rel="stylesheet">
+    <link href="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.css" rel="stylesheet">
+    <link href="/static/css/page.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+
+    <title>Nuova Persona</title>
+</head>
+
+<body>
+
+    {% include 'sidebar.html' %}
+
+    <div class="content">
+
+        <div class="container">
+            <h1>Nuova Persona</h1>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Informazioni Personali</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cognome" class="form-label">Cognome *</label>
+                            <input type="text" class="form-control" id="cognome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome *</label>
+                            <input type="text" class="form-control" id="nome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_nascita" class="form-label">Data di nascita</label>
+                            <input type="date" class="form-control" id="data_nascita">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="luogo_nascita" class="form-label">Luogo di nascita</label>
+                            <input type="text" class="form-control" id="luogo_nascita">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="genere" class="form-label">Genere</label>
+                            <select class="form-select" id="genere">
+                                <option value="">-- Seleziona --</option>
+                                <option value="M">M</option>
+                                <option value="F">F</option>
+                                <option value="Altro">Altro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="citta" class="form-label">Città</label>
+                            <input type="text" class="form-control" id="citta">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="documento" class="form-label">Documento</label>
+                            <input type="text" class="form-control" id="documento" data-select="true" data-select-new="true">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="telefono" class="form-label">Telefono</label>
+                            <input type="text" class="form-control" id="telefono">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="stato_civile" class="form-label">Stato civile</label>
+                            <input type="text" class="form-control" id="stato_civile" data-select="true" data-select-new="true">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="figli" class="form-label">Figli</label>
+                            <input type="text" class="form-control" id="figli">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Situazione Abitativa e Sociale</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="condizione_abitativa" class="form-label">Condizione abitativa</label>
+                            <input type="text" class="form-control" id="condizione_abitativa" data-select="true" data-select-new="true">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria_ethos" class="form-label">Categoria ETHOS</label>
+                            <input type="text" class="form-control" id="categoria_ethos" data-select="true" data-select-new="true">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="residenza" class="form-label">Residenza</label>
+                            <input type="text" class="form-control" id="residenza" data-select="true" data-select-new="true">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="servizi_sociali" class="form-label">Servizi sociali</label>
+                            <input type="text" class="form-control" id="servizi_sociali" data-select="true" data-select-new="true">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Lavoro e Istruzione</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="lavoro" class="form-label">Lavoro</label>
+                            <input type="text" class="form-control" id="lavoro">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="istruzione" class="form-label">Istruzione</label>
+                            <input type="text" class="form-control" id="istruzione" data-select="true" data-select-new="true">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="in_carico_presso" class="form-label">In carico presso</label>
+                            <input type="text" class="form-control" id="in_carico_presso" data-select="true" data-select-new="true">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+                <button type="button" class="btn btn-primary" id="btnSave">Salva</button>
+                <a href="/persone" class="btn btn-secondary">Annulla</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
+    <script src="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.js"></script>
+    <script src="/static/js/new-persona.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,45 @@
+<head>
+    <title>GMS</title>
+
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+</head>
+
+<div class="sidebar">
+
+    <h5 class="mb-4">Guardaroba<br>solidale <span style="color: #e71945;">★</span></h5>
+
+    <hr>
+
+    <!-- <div class="section mb-3">
+        <h6 class="section-name text-muted">Generale</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+        </nav>
+    </div> -->
+
+    <div class="section mb-3">
+        <h6 class="section-name text-muted">Persone</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'persone' %}active{% endif %}" href="{{ url_for('persone') }}">Persone</a>
+        </nav>
+
+        <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'servizi' %}active{% endif %}" href="{{ url_for('servizi') }}">Servizi</a>
+        </nav>
+
+        <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'aggiornamenti' %}active{% endif %}" href="{{ url_for('aggiornamenti') }}">Aggiornamenti</a>
+        </nav>
+
+    </div>
+
+    <div class="section mb-3">
+        <h6 class="section-name text-muted">Strumenti</h6>
+        
+         <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'report' %}active{% endif %}" href="{{ url_for('report') }}">Report</a>
+        </nav>
+
+    </div>
+    
+</div>
