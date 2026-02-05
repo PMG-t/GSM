@@ -109,7 +109,7 @@ const PersonaDetail = (() => {
                 console.log('Dati bisogni ricevuti:', data);
                 bisogniList = data.data;
                 bisogniMap = data.data.reduce((map, bisogno) => {
-                    map[bisogno._id] = bisogno.descrizione_bisogno || bisogno.nome_bisogno;
+                    map[bisogno._id] = bisogno.nome_bisogno;
                     return map;
                 }, {});
                 

@@ -21,6 +21,10 @@ def aggiornamenti():
 def servizi():
     return render_template('servizi.html')
 
+@app.route('/bisogni')
+def bisogni():
+    return render_template('bisogni.html')
+
 @app.route('/report')
 def report():
     return render_template('report.html')

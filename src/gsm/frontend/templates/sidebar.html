@@ -28,6 +28,10 @@
         </nav>
 
         <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'bisogni' %}active{% endif %}" href="{{ url_for('bisogni') }}">Bisogni</a>
+        </nav>
+
+        <nav class="nav flex-column">
             <a class="nav-link {% if request.endpoint == 'aggiornamenti' %}active{% endif %}" href="{{ url_for('aggiornamenti') }}">Aggiornamenti</a>
         </nav>
 
