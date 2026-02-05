@@ -25,6 +25,35 @@ def servizi():
 def bisogni():
     return render_template('bisogni.html')
 
+@app.route('/categoria-bisogno/<categoria>')
+def categoria_bisogno(categoria):
+    return render_template('categoria-bisogno.html', categoria=categoria)
+
+@app.route('/dati_categoria_bisogno', methods=['POST'])
+def dati_categoria_bisogno():
+    try:
+        data = request.json
+        categoria = data.get('categoria')
+        
+        if not categoria:
+            return jsonify({'error': 'Missing categoria'}), 400
+        
+        persone = Q.QUERY_NAMES_MAP['persone_con_bisogno_categoria'](categoria)
+        aggiornamenti = Q.QUERY_NAMES_MAP['aggiornamenti_categoria_bisogno'](categoria)
+        
+        # Conta i bisogni nella categoria
+        bisogni_result = Q.QUERY_NAMES_MAP['bisogni']()
+        num_bisogni = len([b for b in bisogni_result['data'] if b.get('categoria_bisogno') == categoria])
+        
+        return jsonify({
+            'persone': persone,
+            'aggiornamenti': aggiornamenti,
+            'num_bisogni': num_bisogni
+        })
+    except Exception as e:
+        print(f"Error fetching dati categoria bisogno: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/report')
 def report():
     return render_template('report.html')

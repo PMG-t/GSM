@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="/static/libs/ag-grid/ag-grid-community.css" rel="stylesheet">
+    <link href="/static/libs/bootstrap/bootstrap-5.3.0.css" rel="stylesheet">
+    <link href="/static/css/page.css" rel="stylesheet">
+    <link href="/static/css/grid.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+
+    <title>Categoria Bisogno - {{ categoria }}</title>
+</head>
+
+<body>
+
+    {% include 'sidebar.html' %}
+
+    <div class="content">
+
+        <div class="container">
+            <h1>{{ categoria }}</h1>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Informazioni Categoria</h5>
+                    <p><strong>Categoria:</strong> {{ categoria }}</p>
+                    <p><strong>Numero di bisogni:</strong> <span class="badge bg-secondary" id="numBisogni">0</span></p>
+                    <p><strong>Persone con almeno un bisogno in questa categoria:</strong> <span class="badge bg-primary" id="numPersone">0</span></p>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <button class="btn btn-link text-decoration-none w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBisogni" aria-expanded="false" aria-controls="collapseBisogni">
+                        <h5 class="mb-0">Bisogni Specifici</h5>
+                    </button>
+                </div>
+                <div id="collapseBisogni" class="collapse">
+                    <div class="card-body">
+                        <input type="text" 
+                               id="bisogniFilter" 
+                               class="form-control form-control-sm mb-3" 
+                               placeholder="Filtra bisogni..."
+                               style="max-width: 300px;">
+                        <div class="bisogni-chips-container" id="bisogniChipsContainer">
+                            <p class="text-muted">Caricamento...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <button class="btn btn-link text-decoration-none w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePersone" aria-expanded="false" aria-controls="collapsePersone">
+                        <h5 class="mb-0">Persone</h5>
+                    </button>
+                </div>
+                <div id="collapsePersone" class="collapse">
+                    <div class="card-body">
+                        <div id="grid-persone" class="ag-theme-alpine" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <button class="btn btn-link text-decoration-none w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAggiornamenti" aria-expanded="false" aria-controls="collapseAggiornamenti">
+                        <h5 class="mb-0">Aggiornamenti</h5>
+                    </button>
+                </div>
+                <div id="collapseAggiornamenti" class="collapse">
+                    <div class="card-body">
+                        <div id="grid-aggiornamenti" class="ag-theme-alpine" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="/bisogni" class="btn btn-secondary">Torna ai bisogni</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        window.categoriaData = {{ categoria | tojson }};
+    </script>
+    <script src="/static/libs/ag-grid/ag-grid-community.js"></script>
+    <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
+    <script src="/static/js/categoria-bisogno.js"></script>
+</body>
+
+</html>

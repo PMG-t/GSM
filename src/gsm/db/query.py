@@ -172,6 +172,80 @@ def aggiornamenti_servizio(servizio_id):
     return aggiornamenti_list
 
 @q
+def persone_con_bisogno_categoria(categoria):
+    """
+    Returns all persone that have at least one bisogno in a specific categoria.
+    """
+    # Ottieni tutti i bisogni della categoria
+    bisogni = list(DBI.db['bisogni'].find({'categoria_bisogno': categoria}))
+    bisogni_ids = [str(b['_id']) for b in bisogni]
+    
+    persone = list(DBI.db['persone'].find())
+    persone_con = []
+    
+    for persona in persone:
+        if 'bisogni' in persona:
+            # Conta gli aggiornamenti totali per questa categoria
+            num_aggiornamenti = 0
+            has_bisogno_in_categoria = False
+            
+            for bisogno_id in bisogni_ids:
+                if bisogno_id in persona['bisogni'] and persona['bisogni'][bisogno_id]:
+                    has_bisogno_in_categoria = True
+                    num_aggiornamenti += len(persona['bisogni'][bisogno_id])
+            
+            if has_bisogno_in_categoria:
+                # Copia tutti i campi della persona tranne bisogni e servizi
+                persona_data = {k: v for k, v in persona.items() if k not in ['bisogni', 'servizi', 'monitor']}
+                persona_data['_id'] = str(persona_data['_id'])
+                persona_data['num_aggiornamenti'] = num_aggiornamenti
+                persone_con.append(persona_data)
+    
+    df_persone = pd.DataFrame(persone_con)
+    df_persone = df_persone.where(pd.notnull(df_persone), '')
+    persone_con = df_persone.to_dict(orient='records')
+    
+    return persone_con
+
+@q
+def aggiornamenti_categoria_bisogno(categoria):
+    """
+    Returns all aggiornamenti for all bisogni in a specific categoria from all persone.
+    """
+    # Ottieni tutti i bisogni della categoria
+    bisogni = list(DBI.db['bisogni'].find({'categoria_bisogno': categoria}))
+    bisogni_map = {str(b['_id']): b.get('nome_bisogno', 'N/A') for b in bisogni}
+    bisogni_ids = list(bisogni_map.keys())
+    
+    persone = list(DBI.db['persone'].find())
+    aggiornamenti_list = []
+    
+    for persona in persone:
+        if 'bisogni' in persona:
+            persona_id = str(persona['_id'])
+            cognome = persona.get('cognome', '')
+            nome = persona.get('nome', '')
+            
+            for bisogno_id in bisogni_ids:
+                if bisogno_id in persona['bisogni'] and persona['bisogni'][bisogno_id]:
+                    nome_bisogno = bisogni_map.get(bisogno_id, 'N/A')
+                    
+                    for agg in persona['bisogni'][bisogno_id]:
+                        aggiornamenti_list.append({
+                            'persona_id': persona_id,
+                            'cognome': cognome,
+                            'nome': nome,
+                            'nome_bisogno': nome_bisogno,
+                            'data': agg['data'],
+                            'note': agg.get('note', '')
+                        })
+    
+    # Ordina dal più recente al più vecchio
+    aggiornamenti_list.sort(key=lambda x: x['data'], reverse=True)
+    
+    return aggiornamenti_list
+
+@q
 def add_aggiornamento(persona_id, tipo, item_id, note, data):
     """
     Adds an aggiornamento to a servizio, bisogno or monitor for a persona.
