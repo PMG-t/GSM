@@ -210,6 +210,111 @@ def add_aggiornamento(persona_id, tipo, item_id, note, data):
     }
 
 @q
+def remove_aggiornamento(persona_id, tipo, item_id, data):
+    """
+    Removes an aggiornamento from a servizio, bisogno or monitor for a persona.
+    """
+    from bson import ObjectId
+    from datetime import datetime
+    
+    # Determina il campo da aggiornare
+    if tipo == 'servizio':
+        field = 'servizi'
+    elif tipo == 'bisogno':
+        field = 'bisogni'
+    elif tipo == 'monitor':
+        field = 'monitor'
+    else:
+        return {'success': False, 'error': 'Invalid tipo'}
+    
+    # Converti la data in naive datetime
+    data_dt = datetime.fromisoformat(data.replace('Z', '+00:00'))
+    data_dt = data_dt.replace(tzinfo=None)
+    
+    # Remove: pull aggiornamento dall'array
+    result = DBI.db['persone'].update_one(
+        {'_id': ObjectId(persona_id)},
+        {'$pull': {f'{field}.{item_id}': {'data': data_dt}}}
+    )
+    
+    return {
+        'success': result.modified_count > 0,
+        'modified_count': result.modified_count
+    }
+
+@q
+def update_aggiornamento(persona_id, tipo, item_id, old_data, new_data, new_note):
+    """
+    Updates an aggiornamento by replacing the entire array.
+    This is more robust than pull+push as it's a single atomic operation.
+    """
+    from bson import ObjectId
+    from datetime import datetime
+    from email.utils import parsedate_to_datetime
+    
+    # Determina il campo da aggiornare
+    if tipo == 'servizio':
+        field = 'servizi'
+    elif tipo == 'bisogno':
+        field = 'bisogni'
+    elif tipo == 'monitor':
+        field = 'monitor'
+    else:
+        return {'success': False, 'error': 'Invalid tipo'}
+    
+    # Helper per convertire vari formati di data in naive datetime
+    def parse_date(date_str):
+        try:
+            # Prova formato ISO
+            dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            return dt.replace(tzinfo=None)
+        except:
+            try:
+                # Prova formato GMT/HTTP
+                dt = parsedate_to_datetime(date_str)
+                return dt.replace(tzinfo=None)
+            except:
+                raise ValueError(f"Invalid date format: {date_str}")
+    
+    # Converti le date in naive datetime
+    old_data_dt = parse_date(old_data)
+    new_data_dt = parse_date(new_data)
+    
+    # Leggi il documento persona
+    persona = DBI.db['persone'].find_one({'_id': ObjectId(persona_id)})
+    if not persona:
+        return {'success': False, 'error': 'Persona not found'}
+    
+    # Ottieni l'array corrente
+    if field not in persona or item_id not in persona[field]:
+        return {'success': False, 'error': f'{field}.{item_id} not found'}
+    
+    current_array = persona[field][item_id]
+    
+    # Filtra per rimuovere l'elemento con la vecchia data
+    filtered_array = [agg for agg in current_array if agg['data'] != old_data_dt]
+    
+    # Aggiungi il nuovo elemento
+    filtered_array.append({
+        'data': new_data_dt,
+        'note': new_note
+    })
+    
+    # Ordina per data (opzionale, ma utile)
+    filtered_array.sort(key=lambda x: x['data'])
+    
+    # Riscrive l'array completo con $set
+    result = DBI.db['persone'].update_one(
+        {'_id': ObjectId(persona_id)},
+        {'$set': {f'{field}.{item_id}': filtered_array}}
+    )
+    
+    return {
+        'success': result.modified_count > 0,
+        'modified_count': result.modified_count
+    }
+
+@q
 def add_servizio_to_persona(persona_id, servizio_id):
     """
     Adds a new servizio to a persona with empty array.

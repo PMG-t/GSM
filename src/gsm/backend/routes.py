@@ -248,6 +248,58 @@ def create_monitor():
         print(f"Error creating monitor: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/remove-aggiornamento', methods=['POST'])
+def remove_aggiornamento():
+    try:
+        data = request.json
+        persona_id = data.get('persona_id')
+        tipo = data.get('tipo')
+        item_id = data.get('item_id')
+        data_agg = data.get('data')
+        
+        if not all([persona_id, tipo, item_id, data_agg]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        result = Q.QUERY_NAMES_MAP['remove_aggiornamento'](
+            persona_id=persona_id,
+            tipo=tipo,
+            item_id=item_id,
+            data=data_agg
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error removing aggiornamento: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/update-aggiornamento', methods=['POST'])
+def update_aggiornamento():
+    try:
+        data = request.json
+        persona_id = data.get('persona_id')
+        tipo = data.get('tipo')
+        item_id = data.get('item_id')
+        old_data = data.get('old_data')
+        new_data = data.get('new_data')
+        new_note = data.get('new_note')
+        
+        if not all([persona_id, tipo, item_id, old_data, new_data]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        result = Q.QUERY_NAMES_MAP['update_aggiornamento'](
+            persona_id=persona_id,
+            tipo=tipo,
+            item_id=item_id,
+            old_data=old_data,
+            new_data=new_data,
+            new_note=new_note or ''
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error updating aggiornamento: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/q', methods=['POST'])
 def q():
     

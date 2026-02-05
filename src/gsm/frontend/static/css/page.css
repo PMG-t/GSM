@@ -48,6 +48,16 @@ body {
     overflow-y: auto;
 }
 
+.monitor-grid-normal {
+    height: 300px;
+    transition: height 0.3s ease;
+}
+
+.monitor-grid-expanded {
+    height: 700px;
+    transition: height 0.3s ease;
+}
+
 #monitor-field-panel h5 {
     font-size: 0.9rem;
     font-weight: 600;
@@ -64,6 +74,16 @@ body {
 #monitor-field-panel .form-check-label {
     font-size: 0.85rem;
     cursor: pointer;
+}
+
+.monitor-grid-normal {
+    height: 300px;
+    transition: height 0.3s ease;
+}
+
+.monitor-grid-expanded {
+    height: 700px;
+    transition: height 0.3s ease;
 }
 
 .aggiornamenti-section {

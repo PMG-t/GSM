@@ -749,6 +749,9 @@ const PersonaDetail = (() => {
                 filter: true,
                 editable: false,
                 resizable: true,
+                wrapText: true,
+                autoHeight: true,
+                cellStyle: { lineHeight: '1.3', padding: '8px' },
                 cellEditor: 'agTextCellEditor',
                 onCellClicked: params => {
                     // Apri modale per editare la nota
@@ -817,6 +820,9 @@ const PersonaDetail = (() => {
                 
                 // Crea il pannello di selezione colonne
                 createMonitorFieldPanel(columnDefs);
+                
+                // Setup del filtro globale
+                setupMonitorQuickFilter();
         
             } catch (error) {
                 console.error('ERRORE nella creazione della griglia:', error);
@@ -854,37 +860,41 @@ const PersonaDetail = (() => {
         });
     }
 
-    function saveMonitorAggiornamento(monitorId, data, note) {
+    function setupMonitorQuickFilter() {
+        const searchInput = document.getElementById('monitorSearchInput');
+        if (!searchInput) return;
         
-        if (!note || note.trim() === '') {
-            console.log('Nota vuota, non salvo');
+        searchInput.addEventListener('input', (e) => {
+            if (monitorGridApi) {
+                monitorGridApi.setGridOption('quickFilterText', e.target.value);
+            }
+        });
+    }
+
+    function removeOldMonitorAggiornamento(monitorId, oldDataISO, callback) {
+        console.log('Rimozione vecchio aggiornamento:', { monitorId, oldDataISO });
+        
+        if (!personaData.monitor[monitorId]) {
+            if (callback) callback();
             return;
         }
-
-        // Converti la data in oggetto Date e poi in ISO string
-        let dataISO;
-        try {
-            const dataObj = new Date(data);
-            // Imposta l'ora a mezzanotte UTC per evitare problemi di timezone
-            dataISO = new Date(Date.UTC(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate())).toISOString();
-            console.log('Data convertita in ISO:', dataISO);
-        } catch (error) {
-            console.error('Errore nella conversione della data:', error);
-            alert('Errore nella conversione della data');
-            return;
-        }
-
+        
+        // Rimuovi il vecchio aggiornamento dai dati locali
+        personaData.monitor[monitorId] = personaData.monitor[monitorId].filter(
+            agg => new Date(agg.data).toISOString() !== oldDataISO
+        );
+        
+        // Rimuovi anche dal database
         const payload = {
             persona_id: personaData._id,
             tipo: 'monitor',
             item_id: monitorId,
-            data: dataISO,
-            note: note
+            data: oldDataISO
         };
-
-        console.log('Payload inviato:', payload);
-
-        fetch('/add-aggiornamento', {
+        
+        console.log('Payload rimozione:', payload);
+        
+        fetch('/remove-aggiornamento', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -893,28 +903,71 @@ const PersonaDetail = (() => {
         })
             .then(response => response.json())
             .then(data => {
-                console.log('Aggiornamento salvato:', data);
+                console.log('Vecchio aggiornamento rimosso dal DB:', data);
+                if (callback) callback();
+            })
+            .catch(error => {
+                console.error('Errore nella rimozione:', error);
+                if (callback) callback();
+            });
+    }
+
+    function updateMonitorAggiornamento(monitorId, oldDataISO, newDataISO, newNote) {
+        console.log('Update atomico aggiornamento:', { monitorId, oldDataISO, newDataISO, newNote });
+        
+        if (!personaData.monitor[monitorId]) {
+            console.error('Monitor non trovato:', monitorId);
+            return;
+        }
+        
+        const payload = {
+            persona_id: personaData._id,
+            tipo: 'monitor',
+            item_id: monitorId,
+            old_data: oldDataISO,
+            new_data: newDataISO,
+            new_note: newNote
+        };
+        
+        console.log('Payload update:', payload);
+        
+        fetch('/update-aggiornamento', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Aggiornamento modificato nel DB:', data);
+                
                 if (data.success) {
                     // Aggiorna i dati locali
-                    if (!personaData.monitor[monitorId]) {
-                        personaData.monitor[monitorId] = [];
-                    }
-                    // Trova e aggiorna o aggiungi
-                    const existingIdx = personaData.monitor[monitorId].findIndex(
-                        agg => new Date(agg.data).toISOString() === dataISO
+                    // Rimuovi il vecchio
+                    personaData.monitor[monitorId] = personaData.monitor[monitorId].filter(
+                        agg => new Date(agg.data).toISOString() !== oldDataISO
                     );
-                    if (existingIdx >= 0) {
-                        personaData.monitor[monitorId][existingIdx].note = note;
-                    } else {
-                        personaData.monitor[monitorId].push({ data: dataISO, note: note });
-                    }
-                    // Ri-renderizza la griglia per mostrare i nuovi dati
+                    
+                    // Aggiungi il nuovo
+                    personaData.monitor[monitorId].push({
+                        data: newDataISO,
+                        note: newNote
+                    });
+                    
+                    // Riordina per data
+                    personaData.monitor[monitorId].sort((a, b) => 
+                        new Date(a.data) - new Date(b.data)
+                    );
+                    
                     renderMonitorGrid();
+                } else {
+                    alert('Errore nell\'aggiornamento: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
-                console.error('Errore nel salvataggio:', error);
-                alert('Errore nel salvataggio dell\'aggiornamento');
+                console.error('Errore nell\'update:', error);
+                alert('Errore nell\'aggiornamento');
             });
     }
 
@@ -924,6 +977,10 @@ const PersonaDetail = (() => {
             month: '2-digit',
             day: '2-digit'
         });
+        
+        // Formato data per input type="date" (YYYY-MM-DD)
+        const dataObj = new Date(data);
+        const dataInputValue = dataObj.toISOString().split('T')[0];
 
         const modalHtml = `
             <div class="modal fade" id="editMonitorNoteModal" tabindex="-1">
@@ -934,7 +991,10 @@ const PersonaDetail = (() => {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <p class="text-muted mb-2">Data: ${dataFormatted}</p>
+                            <div class="mb-3">
+                                <label for="dateInput" class="form-label">Data</label>
+                                <input type="date" id="dateInput" class="form-control" value="${dataInputValue}">
+                            </div>
                             <label for="noteTextarea" class="form-label">Nota</label>
                             <textarea id="noteTextarea" class="form-control" rows="5" placeholder="Inserisci la nota...">${currentNote}</textarea>
                         </div>
@@ -960,12 +1020,29 @@ const PersonaDetail = (() => {
 
         document.getElementById('btnSaveNote').addEventListener('click', () => {
             const newNote = textarea.value.trim();
-            if (newNote) {
-                saveMonitorAggiornamento(monitorId, data, newNote);
-                modal.hide();
-            } else {
+            const newDate = document.getElementById('dateInput').value;
+            
+            if (!newNote) {
                 alert('La nota non può essere vuota');
+                return;
             }
+            
+            if (!newDate) {
+                alert('Seleziona una data');
+                return;
+            }
+            
+            // Converti la nuova data in ISO string
+            const newDateISO = new Date(newDate + 'T00:00:00Z').toISOString();
+            const oldDataISO = typeof data === 'string' ? data : new Date(data).toISOString();
+            
+            console.log('Old date ISO:', oldDataISO);
+            console.log('New date ISO:', newDateISO);
+            console.log('Dates are different:', newDateISO !== oldDataISO);
+            
+            // Usa update atomico invece di remove + add
+            updateMonitorAggiornamento(monitorId, oldDataISO, newDateISO, newNote);
+            modal.hide();
         });
 
         document.getElementById('editMonitorNoteModal').addEventListener('hidden.bs.modal', function () {
@@ -1177,7 +1254,6 @@ const PersonaDetail = (() => {
                     renderMonitorGrid();
                     
                     console.log('renderMonitorGrid completato');
-                    alert('Situazione aggiunta con successo!');
                 } else {
                     console.error('Errore nella risposta:', data);
                     alert('Errore nell\'aggiunta del monitor: ' + (data.error || 'Unknown error'));
@@ -1189,7 +1265,22 @@ const PersonaDetail = (() => {
             });
     }
 
-    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams };
+    function toggleMonitorGridHeight() {
+        const grid = document.getElementById('monitor-grid');
+        const btn = document.getElementById('btnToggleMonitorHeight');
+        
+        if (grid.classList.contains('monitor-grid-normal')) {
+            grid.classList.remove('monitor-grid-normal');
+            grid.classList.add('monitor-grid-expanded');
+            btn.innerHTML = '<i class="bi bi-arrows-collapse"></i> Riduci';
+        } else {
+            grid.classList.remove('monitor-grid-expanded');
+            grid.classList.add('monitor-grid-normal');
+            btn.innerHTML = '<i class="bi bi-arrows-expand"></i> Espandi';
+        }
+    }
+
+    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams, toggleMonitorGridHeight };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
