@@ -37,6 +37,35 @@ body {
     cursor: pointer;
 }
 
+#monitor-field-panel {
+    min-width: 200px;
+    max-width: 250px;
+    margin-left: 1.5rem;
+    padding: 1.25rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#monitor-field-panel h5 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #495057;
+    margin-bottom: 0.75rem;
+}
+
+#monitor-field-panel .form-check {
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+}
+
+#monitor-field-panel .form-check-label {
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
 .aggiornamenti-section {
     margin-top: 0.75rem;
     margin-left: 1rem;

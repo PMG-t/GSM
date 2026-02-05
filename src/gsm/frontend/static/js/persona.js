@@ -5,6 +5,9 @@ const PersonaDetail = (() => {
     let bisogniMap = {};
     let serviziList = [];
     let bisogniList = [];
+    let monitorList = [];
+    let monitorMap = {};
+    let monitorGridApi = null;
 
     function init() {
         console.log('Inizializzazione dettaglio persona');
@@ -113,6 +116,27 @@ const PersonaDetail = (() => {
                 renderBisogni();
             })
             .catch(error => console.error('Errore nel caricamento bisogni:', error));
+
+        // Fetch monitor
+        fetch('/q', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                query: 'monitor'
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                monitorList = data.data;
+                monitorMap = data.data.reduce((map, monitor) => {
+                    map[monitor._id] = monitor.descrizione_monitor || monitor.nome_monitor;
+                    return map;
+                }, {});
+                renderMonitorGrid();
+            })
+            .catch(error => console.error('Errore nel caricamento monitor:', error));
     }
 
     function renderServizi() {
@@ -670,7 +694,502 @@ const PersonaDetail = (() => {
             .catch(error => console.error('Errore nell\'aggiunta:', error));
     }
 
-    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, deleteAggiornamento, checkUrlParams };
+    function renderMonitorGrid() {
+        const monitorData = personaData.monitor || {};
+        const monitorIds = Object.keys(monitorData);
+        console.log('monitorIds estratti:', monitorIds);
+        
+        const gridDiv = document.querySelector('#monitor-grid');
+        if (!gridDiv) {
+            console.log('gridDiv non trovato');
+            return;
+        }
+        
+        // Se non ci sono monitor, mostra un messaggio
+        if (monitorIds.length === 0) {
+            console.log('Nessun monitor da visualizzare');
+            
+            // Se esiste già una griglia, distruggila
+            if (monitorGridApi) {
+                monitorGridApi.destroy();
+                monitorGridApi = null;
+            }
+            
+            gridDiv.innerHTML = '<p class="text-muted">Nessuna situazione da monitorare. Aggiungi una situazione per iniziare.</p>';
+            return;
+        }
+        
+        // Prepara le colonne dinamiche
+        const columnDefs = [
+            {
+                headerName: 'Data',
+                field: 'data',
+                sortable: true,
+                filter: true,
+                width: 150,
+                valueFormatter: params => {
+                    if (!params.value) return '';
+                    return new Date(params.value).toLocaleDateString('it-IT', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                },
+                sort: 'desc'
+            }
+        ];
+
+        // Aggiungi una colonna per ogni monitor (editabile)
+        monitorIds.forEach(monitorId => {
+            const monitorNome = monitorMap[monitorId] || monitorId;
+            columnDefs.push({
+                headerName: monitorNome,
+                field: monitorId,
+                sortable: true,
+                filter: true,
+                editable: false,
+                resizable: true,
+                cellEditor: 'agTextCellEditor',
+                onCellClicked: params => {
+                    // Apri modale per editare la nota
+                    showEditMonitorNoteModal(monitorId, monitorNome, params.data.data, params.value || '');
+                }
+            });
+        });
+
+        // Aggrega i dati: una riga per ogni data unica
+        const dataMap = {};
+        monitorIds.forEach(monitorId => {
+            const aggiornamenti = monitorData[monitorId] || [];
+            aggiornamenti.forEach(agg => {
+                const dataKey = new Date(agg.data).toISOString();
+                if (!dataMap[dataKey]) {
+                    dataMap[dataKey] = { data: agg.data };
+                }
+                dataMap[dataKey][monitorId] = agg.note || '';
+            });
+        });
+
+        const rowData = Object.values(dataMap);
+
+        console.log('Monitor grid - Colonne:', columnDefs.length);
+        console.log('Monitor grid - Righe:', rowData.length);
+
+        // Se la griglia esiste già, aggiorna colonne e dati
+        if (monitorGridApi) {
+            monitorGridApi.setGridOption('columnDefs', columnDefs);
+            monitorGridApi.setGridOption('rowData', rowData);
+            if (rowData.length === 0) {
+                monitorGridApi.showNoRowsOverlay();
+            } else {
+                monitorGridApi.hideOverlay();
+            }
+            monitorGridApi.sizeColumnsToFit();
+            
+            // Aggiorna anche il pannello colonne
+            createMonitorFieldPanel(columnDefs);
+        } else {
+           
+            const gridOptions = {
+                columnDefs: columnDefs,
+                rowData: rowData,
+                defaultColDef: {
+                    sortable: true,
+                    filter: true,
+                    resizable: true
+                },
+                editType: 'fullRow',
+                overlayNoRowsTemplate: '<span style="padding: 10px; border: 2px solid #ddd; background: #f9f9f9;">Nessun aggiornamento. Clicca su "Aggiungi riga di aggiornamento" per iniziare.</span>'
+            };
+
+            gridDiv.innerHTML = ''; 
+            
+            try {
+                monitorGridApi = agGrid.createGrid(gridDiv, gridOptions);
+                
+                // Usa setTimeout per permettere al DOM di stabilizzarsi
+                setTimeout(() => {
+                    if (rowData.length === 0) {
+                        monitorGridApi.showNoRowsOverlay();
+                    }
+                    monitorGridApi.sizeColumnsToFit();
+                }, 50);
+                
+                // Crea il pannello di selezione colonne
+                createMonitorFieldPanel(columnDefs);
+        
+            } catch (error) {
+                console.error('ERRORE nella creazione della griglia:', error);
+                console.error('Stack:', error.stack);
+            }
+        }
+    }
+
+    function createMonitorFieldPanel(columnDefs) {
+        const panel = document.querySelector('#monitor-field-panel');
+        if (!panel) return;
+        
+        panel.innerHTML = '<h5 class="mb-3">Colonne</h5>';
+        
+        columnDefs.forEach(colDef => {
+            const field = colDef.field;
+            const headerName = colDef.headerName;
+            const isVisible = !colDef.hide;
+            
+            const div = document.createElement('div');
+            div.className = 'form-check mb-1';
+            div.innerHTML = `
+                <input class="form-check-input" type="checkbox" id="col-monitor-${field}" ${isVisible ? 'checked' : ''}>
+                <label class="form-check-label" for="col-monitor-${field}">${headerName}</label>
+            `;
+            panel.appendChild(div);
+            
+            const checkbox = div.querySelector('input');
+            checkbox.addEventListener('change', (e) => {
+                if (monitorGridApi) {
+                    monitorGridApi.setColumnsVisible([field], e.target.checked);
+                    monitorGridApi.sizeColumnsToFit();
+                }
+            });
+        });
+    }
+
+    function saveMonitorAggiornamento(monitorId, data, note) {
+        
+        if (!note || note.trim() === '') {
+            console.log('Nota vuota, non salvo');
+            return;
+        }
+
+        // Converti la data in oggetto Date e poi in ISO string
+        let dataISO;
+        try {
+            const dataObj = new Date(data);
+            // Imposta l'ora a mezzanotte UTC per evitare problemi di timezone
+            dataISO = new Date(Date.UTC(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate())).toISOString();
+            console.log('Data convertita in ISO:', dataISO);
+        } catch (error) {
+            console.error('Errore nella conversione della data:', error);
+            alert('Errore nella conversione della data');
+            return;
+        }
+
+        const payload = {
+            persona_id: personaData._id,
+            tipo: 'monitor',
+            item_id: monitorId,
+            data: dataISO,
+            note: note
+        };
+
+        console.log('Payload inviato:', payload);
+
+        fetch('/add-aggiornamento', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Aggiornamento salvato:', data);
+                if (data.success) {
+                    // Aggiorna i dati locali
+                    if (!personaData.monitor[monitorId]) {
+                        personaData.monitor[monitorId] = [];
+                    }
+                    // Trova e aggiorna o aggiungi
+                    const existingIdx = personaData.monitor[monitorId].findIndex(
+                        agg => new Date(agg.data).toISOString() === dataISO
+                    );
+                    if (existingIdx >= 0) {
+                        personaData.monitor[monitorId][existingIdx].note = note;
+                    } else {
+                        personaData.monitor[monitorId].push({ data: dataISO, note: note });
+                    }
+                    // Ri-renderizza la griglia per mostrare i nuovi dati
+                    renderMonitorGrid();
+                }
+            })
+            .catch(error => {
+                console.error('Errore nel salvataggio:', error);
+                alert('Errore nel salvataggio dell\'aggiornamento');
+            });
+    }
+
+    function showEditMonitorNoteModal(monitorId, monitorNome, data, currentNote) {
+        const dataFormatted = new Date(data).toLocaleDateString('it-IT', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+
+        const modalHtml = `
+            <div class="modal fade" id="editMonitorNoteModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Modifica Nota - ${monitorNome}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted mb-2">Data: ${dataFormatted}</p>
+                            <label for="noteTextarea" class="form-label">Nota</label>
+                            <textarea id="noteTextarea" class="form-control" rows="5" placeholder="Inserisci la nota...">${currentNote}</textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                            <button type="button" class="btn btn-primary" id="btnSaveNote">Salva</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        let existingModal = document.getElementById('editMonitorNoteModal');
+        if (existingModal) existingModal.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('editMonitorNoteModal'));
+        modal.show();
+
+        const textarea = document.getElementById('noteTextarea');
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+        document.getElementById('btnSaveNote').addEventListener('click', () => {
+            const newNote = textarea.value.trim();
+            if (newNote) {
+                saveMonitorAggiornamento(monitorId, data, newNote);
+                modal.hide();
+            } else {
+                alert('La nota non può essere vuota');
+            }
+        });
+
+        document.getElementById('editMonitorNoteModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    function showAddMonitorRowModal() {
+        const modalHtml = `
+            <div class="modal fade" id="addMonitorRowModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Aggiungi Riga di Aggiornamento</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="rowDate" class="form-label">Data</label>
+                            <input type="date" id="rowDate" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                            <button type="button" class="btn btn-primary" id="btnSaveRow">Aggiungi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        let existingModal = document.getElementById('addMonitorRowModal');
+        if (existingModal) existingModal.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('addMonitorRowModal'));
+        modal.show();
+
+        document.getElementById('btnSaveRow').addEventListener('click', () => {
+            const dateValue = document.getElementById('rowDate').value;
+            if (!dateValue) {
+                alert('Seleziona una data');
+                return;
+            }
+            
+            // Aggiungi una riga vuota con la data
+            const newRow = { data: new Date(dateValue).toISOString() };
+            
+            // Aggiungi la riga alla griglia
+            if (monitorGridApi) {
+                monitorGridApi.applyTransaction({ add: [newRow] });
+                monitorGridApi.sizeColumnsToFit();
+            }
+            
+            modal.hide();
+        });
+
+        document.getElementById('addMonitorRowModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    function showAddMonitorModal() {
+        const options = monitorList.map(item => {
+            const nome = item.nome_monitor || item.descrizione_monitor;
+            return `<option value="${item._id}">${nome}</option>`;
+        }).join('');
+
+        const modalHtml = `
+            <div class="modal fade" id="addMonitorModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Aggiungi Situazione da Monitorare</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="monitorSelect" class="form-label">Seleziona situazione</label>
+                            <select id="monitorSelect" class="form-select">
+                                <option value="">-- Seleziona --</option>
+                                ${options}
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                            <button type="button" class="btn btn-primary" id="btnSaveMonitor">Aggiungi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        let existingModal = document.getElementById('addMonitorModal');
+        if (existingModal) existingModal.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('addMonitorModal'));
+        modal.show();
+
+        const selectElement = document.getElementById('monitorSelect');
+        const tomSelect = new TomSelect(selectElement, {
+            create: true,
+            createOnBlur: true,
+            sortField: 'text',
+            placeholder: 'Cerca o crea nuova situazione...',
+            create: function(input) {
+                return {
+                    value: 'new:' + input,
+                    text: input
+                };
+            }
+        });
+
+        document.getElementById('btnSaveMonitor').addEventListener('click', () => {
+            const monitorId = tomSelect.getValue();
+            if (!monitorId) {
+                alert('Seleziona una situazione da monitorare');
+                return;
+            }
+            saveNewMonitor(monitorId);
+            modal.hide();
+        });
+
+        document.getElementById('addMonitorModal').addEventListener('hidden.bs.modal', function () {
+            tomSelect.destroy();
+            this.remove();
+        });
+    }
+
+    function saveNewMonitor(monitorIdOrValue) {
+        console.log('saveNewMonitor chiamato con:', monitorIdOrValue);
+        
+        // Controlla se è una nuova situazione da creare
+        if (monitorIdOrValue.startsWith('new:')) {
+            const nuovaSituazione = monitorIdOrValue.substring(4);
+            console.log('Creazione nuova situazione:', nuovaSituazione);
+            
+            // Prima crea il monitor nella collection
+            const createPayload = {
+                nome_monitor: nuovaSituazione.toLowerCase().replace(/\s+/g, '_'),
+                descrizione_monitor: nuovaSituazione
+            };
+            
+            fetch('/create-monitor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(createPayload)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Monitor creato:', data);
+                    if (data.success && data.monitor_id) {
+                        // Aggiorna monitorList e monitorMap
+                        const newMonitor = {
+                            _id: data.monitor_id,
+                            nome_monitor: createPayload.nome_monitor,
+                            descrizione_monitor: createPayload.descrizione_monitor
+                        };
+                        monitorList.push(newMonitor);
+                        monitorMap[data.monitor_id] = createPayload.descrizione_monitor;
+                        
+                        // Ora aggiungi alla persona
+                        addMonitorToPersona(data.monitor_id);
+                    } else {
+                        alert('Errore nella creazione della situazione: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore nella creazione del monitor:', error);
+                    alert('Errore nella creazione della situazione');
+                });
+        } else {
+            // Situazione esistente
+            addMonitorToPersona(monitorIdOrValue);
+        }
+    }
+    
+    function addMonitorToPersona(monitorId) {
+        const payload = {
+            persona_id: personaData._id,
+            item_id: monitorId
+        };
+
+        console.log('Aggiunta monitor alla persona:', payload);
+
+        fetch('/add-monitor', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => {
+                console.log('Risposta raw:', response);
+                return response.json();
+            })
+            .then(data => {
+                console.log('=== RISPOSTA ADD MONITOR ===');
+                console.log('Monitor aggiunto - Risposta completa:', data);
+                console.log('data.success:', data.success);
+                
+                if (data.success) {
+                    // Aggiorna i dati locali
+                    if (!personaData.monitor) {
+                        personaData.monitor = {};
+                    }
+                    personaData.monitor[monitorId] = [];
+                    
+                    renderMonitorGrid();
+                    
+                    console.log('renderMonitorGrid completato');
+                    alert('Situazione aggiunta con successo!');
+                } else {
+                    console.error('Errore nella risposta:', data);
+                    alert('Errore nell\'aggiunta del monitor: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Errore nell\'aggiunta del monitor:', error);
+                alert('Errore nell\'aggiunta del monitor');
+            });
+    }
+
+    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

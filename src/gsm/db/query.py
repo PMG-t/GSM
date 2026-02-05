@@ -76,6 +76,20 @@ def bisogni(filters=dict(), projection=dict()):
     return result
 
 @q
+def monitor(filters=dict(), projection=dict()):
+    """
+    Returns all documents from the 'monitor' collection.
+    """
+    monitor = list(DBI.db['monitor'].find(filters, projection))
+    df = pd.DataFrame(monitor)
+    df = df.where(pd.notnull(df), '')
+    result = {
+        'data': df.to_dict(orient='records',),
+        'columns': list(df.columns),
+    }
+    return result
+
+@q
 def persona(persona_id):
     """
     Returns a single document from the 'persone' collection by ID.
@@ -160,13 +174,20 @@ def aggiornamenti_servizio(servizio_id):
 @q
 def add_aggiornamento(persona_id, tipo, item_id, note, data):
     """
-    Adds an aggiornamento to a servizio or bisogno for a persona.
+    Adds an aggiornamento to a servizio, bisogno or monitor for a persona.
     """
     from bson import ObjectId
     from datetime import datetime
     
     # Determina il campo da aggiornare
-    field = 'servizi' if tipo == 'servizio' else 'bisogni'
+    if tipo == 'servizio':
+        field = 'servizi'
+    elif tipo == 'bisogno':
+        field = 'bisogni'
+    elif tipo == 'monitor':
+        field = 'monitor'
+    else:
+        return {'success': False, 'error': 'Invalid tipo'}
     
     # Crea l'oggetto aggiornamento con data naive
     data_dt = datetime.fromisoformat(data.replace('Z', '+00:00'))
@@ -177,7 +198,7 @@ def add_aggiornamento(persona_id, tipo, item_id, note, data):
         'note': note
     }
     
-    # Update: push aggiornamento nell'array del servizio/bisogno specifico
+    # Update: push aggiornamento nell'array del servizio/bisogno/monitor specifico
     result = DBI.db['persone'].update_one(
         {'_id': ObjectId(persona_id)},
         {'$push': {f'{field}.{item_id}': aggiornamento}}
@@ -220,6 +241,42 @@ def add_bisogno_to_persona(persona_id, bisogno_id):
     return {
         'success': result.modified_count > 0,
         'modified_count': result.modified_count
+    }
+
+@q
+def add_monitor_to_persona(persona_id, monitor_id):
+    """
+    Adds a new monitor to a persona with empty array.
+    """
+    from bson import ObjectId
+    
+    result = DBI.db['persone'].update_one(
+        {'_id': ObjectId(persona_id)},
+        {'$set': {f'monitor.{monitor_id}': []}},
+        upsert=False
+    )
+    
+    return {
+        'success': result.modified_count > 0 or result.matched_count > 0,
+        'modified_count': result.modified_count,
+        'matched_count': result.matched_count
+    }
+
+@q
+def create_monitor(nome_monitor, descrizione_monitor):
+    """
+    Creates a new monitor situation in the monitor collection.
+    """
+    new_monitor = {
+        'nome_monitor': nome_monitor,
+        'descrizione_monitor': descrizione_monitor
+    }
+    
+    result = DBI.db['monitor'].insert_one(new_monitor)
+    
+    return {
+        'success': result.inserted_id is not None,
+        'monitor_id': str(result.inserted_id) if result.inserted_id else None
     }
 
 @q

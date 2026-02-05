@@ -7,6 +7,7 @@
 
     <link href="/static/libs/bootstrap/bootstrap-5.3.0.css" rel="stylesheet">
     <link href="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.css" rel="stylesheet">
+    <link href="/static/libs/ag-grid/ag-grid-community.css" rel="stylesheet">
     <link href="/static/css/page.css" rel="stylesheet">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -67,6 +68,25 @@
                 </div>
             </div>
 
+            <!-- Sezione Monitor -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Situazioni da Monitorare</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-sm btn-primary mb-2 me-2" onclick="PersonaDetail.showAddMonitorModal()">
+                        + Aggiungi situazione da monitorare
+                    </button>
+                    <button class="btn btn-sm btn-success mb-2" onclick="PersonaDetail.showAddMonitorRowModal()">
+                        + Aggiungi riga di aggiornamento
+                    </button>
+                    <div class="d-flex flex-row">
+                        <div id="monitor-grid" class="ag-theme-alpine" style="height: 300px; width: 100%;"></div>
+                        <div id="monitor-field-panel"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sezioni espandibili per Servizi e Bisogni -->
             <div class="accordion mt-4" id="accordionServiziBisogni">
                 <div class="accordion-item">
@@ -105,6 +125,7 @@
     <script>
         window.personaData = {{ persona | tojson }};
     </script>
+    <script src="/static/libs/ag-grid/ag-grid-community.js"></script>
     <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
     <script src="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.js"></script>
     <script src="/static/js/persona.js"></script>

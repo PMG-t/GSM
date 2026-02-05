@@ -208,6 +208,46 @@ def add_bisogno():
         print(f"Error adding bisogno: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/add-monitor', methods=['POST'])
+def add_monitor():
+    try:
+        data = request.json
+        persona_id = data.get('persona_id')
+        item_id = data.get('item_id')
+        
+        if not all([persona_id, item_id]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        result = Q.QUERY_NAMES_MAP['add_monitor_to_persona'](
+            persona_id=persona_id,
+            monitor_id=item_id
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error adding monitor: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/create-monitor', methods=['POST'])
+def create_monitor():
+    try:
+        data = request.json
+        nome_monitor = data.get('nome_monitor')
+        descrizione_monitor = data.get('descrizione_monitor')
+        
+        if not all([nome_monitor, descrizione_monitor]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        result = Q.QUERY_NAMES_MAP['create_monitor'](
+            nome_monitor=nome_monitor,
+            descrizione_monitor=descrizione_monitor
+        )
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error creating monitor: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/q', methods=['POST'])
 def q():
     
