@@ -6,7 +6,7 @@ import os
 load_dotenv()
 
 # DB general
-_DB_NAME = os.getenv('DB_NAME', 'GSM-test-007')
+_DB_NAME = os.getenv('DB_NAME', 'GSM-test-default')
 _CONNECTION_STRING = os.getenv('CONNECTION_STRING', 'mongodb://localhost:27017/')
 
 class DatabaseInterface():    
