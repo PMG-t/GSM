@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- ag-Grid CSS from CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-alpine.css">
+    
+    <link href="/static/libs/bootstrap/bootstrap-5.3.0.css" rel="stylesheet">
+    <link href="/static/css/page.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+
+    <title>Importa Dati da Excel</title>
+</head>
+
+<body>
+
+    {% include 'sidebar.html' %}
+
+    <div class="content">
+
+        <div class="container">
+            <h1>Importa Dati da Excel</h1>
+            <p class="text-muted">Carica i file Excel di Sportello e Guardaroba per importare i dati nel database.</p>
+
+            <div class="alert alert-warning" role="alert">
+                <strong>⚠️ Attenzione:</strong> Questa operazione sovrascriverà i dati esistenti nel database. Assicurati di avere un backup prima di procedere.
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Carica File Excel</h5>
+                    
+                    <form id="importForm">
+                        <div class="mb-3">
+                            <label for="sportelloFile" class="form-label">File Sportello HR</label>
+                            <input type="file" class="form-control" id="sportelloFile" accept=".xlsx,.xls" required>
+                            <small class="form-text text-muted">Seleziona il file Excel degli accessi Sportello HR</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="guardarobaFile" class="form-label">File Guardaroba</label>
+                            <input type="file" class="form-control" id="guardarobaFile" accept=".xlsx,.xls" required>
+                            <small class="form-text text-muted">Seleziona il file Excel degli accessi Guardaroba</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="dbName" class="form-label">Nome Database</label>
+                            <input type="text" class="form-control" id="dbName" value="gs" required>
+                            <small class="form-text text-muted">Nome del database dove importare i dati</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <span id="btnText">Carica e Mostra Anteprima</span>
+                            <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                    </form>
+
+                    <div id="progressSection" class="mt-4 d-none">
+                        <h6>Progresso</h6>
+                        <div class="progress" style="height: 25px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                        </div>
+                        <div id="progressMessage" class="mt-2 text-muted"></div>
+                    </div>
+
+                    <div id="resultSection" class="mt-4 d-none">
+                        <!-- Risultati dell'importazione verranno mostrati qui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sezione Preview -->
+            <div class="card mt-4 d-none" id="previewSection">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Anteprima Dati Persone</h5>
+                    <div class="alert alert-info mb-3">
+                        <strong>📊 Anteprima:</strong> Vengono mostrate le prime 200 righe. Controlla i dati prima di confermare l'importazione.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="mb-2"><strong>Totale persone da importare:</strong> <span id="totalPersone" class="badge bg-primary">0</span></p>
+                        <p class="mb-2"><strong>Righe visualizzate:</strong> <span id="previewRows" class="badge bg-secondary">0</span></p>
+                    </div>
+
+                    <div id="preview-grid" class="ag-theme-alpine mb-3" style="height: 500px; width: 100%;"></div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success" id="confirmImportBtn">
+                            <span id="confirmBtnText">✓ Conferma Importazione</span>
+                            <span id="confirmBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancelImportBtn">✕ Annulla</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/static/libs/ag-grid/ag-grid-community.js"></script>
+    <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
+    <script src="/static/js/import.js"></script>
+</body>
+
+</html>

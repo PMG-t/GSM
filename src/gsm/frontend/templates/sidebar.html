@@ -44,6 +44,10 @@
             <a class="nav-link {% if request.endpoint == 'report' %}active{% endif %}" href="{{ url_for('report') }}">Report</a>
         </nav>
 
+         <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'import_page' %}active{% endif %}" href="{{ url_for('import_page') }}">Importa Dati</a>
+        </nav>
+
     </div>
     
 </div>

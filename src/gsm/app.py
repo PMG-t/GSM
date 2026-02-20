@@ -10,6 +10,9 @@ def create_app():
         template_folder="frontend/templates"
     )
     
+    # Configurazione per sessioni (necessarie per l'importazione in due fasi)
+    app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
+    
     CORS(app)
     
     mongo_client = DBI.client

@@ -1,5 +1,6 @@
 import json
-from flask import render_template, request, jsonify, current_app as app
+import uuid
+from flask import render_template, request, jsonify, current_app as app, session
 from markupsafe import escape
 from ..db import Q
 
@@ -57,6 +58,7 @@ def dati_categoria_bisogno():
 @app.route('/report')
 def report():
     return render_template('report.html')
+
 
 @app.route('/servizio/<servizio_id>')
 def servizio(servizio_id):
@@ -332,6 +334,235 @@ def update_aggiornamento():
     except Exception as e:
         print(f"Error updating aggiornamento: {e}")
         return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/import')
+def import_page():
+    return render_template('import.html')
+
+
+@app.route('/preview-excel', methods=['POST'])
+def preview_excel():
+    """
+    Carica i file Excel e genera un'anteprima dei dati persone.
+    Salva i file temporaneamente e ritorna i primi 200 record.
+    """
+    import os
+    import tempfile
+    from werkzeug.utils import secure_filename
+    from ..db.migrator.loader import XLSXLoader
+    
+    try:
+        # Verifica che i file siano stati caricati
+        if 'sportello_file' not in request.files or 'guardaroba_file' not in request.files:
+            return jsonify({'success': False, 'error': 'File mancanti'}), 400
+        
+        sportello_file = request.files['sportello_file']
+        guardaroba_file = request.files['guardaroba_file']
+        db_name = request.form.get('db_name', 'gs')
+        
+        if sportello_file.filename == '' or guardaroba_file.filename == '':
+            return jsonify({'success': False, 'error': 'Nessun file selezionato'}), 400
+        
+        # Crea directory temporanea
+        temp_dir = tempfile.mkdtemp()
+        
+        # Salva i file temporaneamente
+        sportello_path = os.path.join(temp_dir, secure_filename(sportello_file.filename))
+        guardaroba_path = os.path.join(temp_dir, secure_filename(guardaroba_file.filename))
+        
+        sportello_file.save(sportello_path)
+        guardaroba_file.save(guardaroba_path)
+        
+        # Crea loader e carica i dati persone
+        loader = XLSXLoader(sportello_path, guardaroba_path)
+        df_persone = loader.load_persone()
+        
+        # Genera session ID per tracciare i file temporanei
+        session_id = str(uuid.uuid4())
+        
+        # Salva i percorsi dei file e il db_name in sessione
+        session[session_id] = {
+            'sportello_path': sportello_path,
+            'guardaroba_path': guardaroba_path,
+            'db_name': db_name,
+            'temp_dir': temp_dir
+        }
+        
+        # Converti il DataFrame in dict per JSON (max 200 righe)
+        preview_data = df_persone.head(200).fillna('').to_dict('records')
+        total_rows = len(df_persone)
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'preview_data': preview_data,
+            'total_rows': total_rows
+        })
+        
+    except Exception as e:
+        print(f"Error previewing Excel: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/confirm-import', methods=['POST'])
+def confirm_import():
+    """
+    Conferma l'importazione e scrive i dati nel database.
+    """
+    import os
+    from ..db.migrator.loader import XLSXLoader
+    from ..db.migrator.storer import DBStorer
+    
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        
+        if not session_id or session_id not in session:
+            return jsonify({'success': False, 'error': 'Sessione non valida o scaduta'}), 400
+        
+        # Recupera i dati dalla sessione
+        session_data = session[session_id]
+        sportello_path = session_data['sportello_path']
+        guardaroba_path = session_data['guardaroba_path']
+        db_name = session_data['db_name']
+        temp_dir = session_data['temp_dir']
+        
+        # Crea loader e storer
+        loader = XLSXLoader(sportello_path, guardaroba_path)
+        storer = DBStorer()
+        
+        # Esegui l'importazione
+        df_servizi, df_persone, df_bisogni, df_monitor = storer.new_db_from_xlsx_loader(loader, db_name)
+        
+        # Pulisci i file temporanei
+        try:
+            os.remove(sportello_path)
+            os.remove(guardaroba_path)
+            os.rmdir(temp_dir)
+        except Exception as cleanup_error:
+            print(f"Warning: cleanup error: {cleanup_error}")
+        
+        # Rimuovi dalla sessione
+        session.pop(session_id, None)
+        
+        return jsonify({
+            'success': True,
+            'num_servizi': len(df_servizi),
+            'num_persone': len(df_persone),
+            'num_bisogni': len(df_bisogni),
+            'num_monitor': len(df_monitor)
+        })
+        
+    except Exception as e:
+        print(f"Error confirming import: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/cancel-import', methods=['POST'])
+def cancel_import():
+    """
+    Annulla l'importazione e pulisce i file temporanei.
+    """
+    import os
+    
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        
+        if not session_id or session_id not in session:
+            return jsonify({'success': True, 'message': 'Nessuna sessione da annullare'})
+        
+        # Recupera i dati dalla sessione
+        session_data = session[session_id]
+        sportello_path = session_data['sportello_path']
+        guardaroba_path = session_data['guardaroba_path']
+        temp_dir = session_data['temp_dir']
+        
+        # Pulisci i file temporanei
+        try:
+            if os.path.exists(sportello_path):
+                os.remove(sportello_path)
+            if os.path.exists(guardaroba_path):
+                os.remove(guardaroba_path)
+            if os.path.exists(temp_dir):
+                os.rmdir(temp_dir)
+        except Exception as cleanup_error:
+            print(f"Warning: cleanup error: {cleanup_error}")
+        
+        # Rimuovi dalla sessione
+        session.pop(session_id, None)
+        
+        return jsonify({'success': True, 'message': 'Import annullato'})
+        
+    except Exception as e:
+        print(f"Error cancelling import: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/import-excel', methods=['POST'])
+def import_excel():
+    """
+    Importazione diretta senza anteprima (mantenuto per compatibilità).
+    """
+    import os
+    import tempfile
+    from werkzeug.utils import secure_filename
+    from ..db.migrator.loader import XLSXLoader
+    from ..db.migrator.storer import DBStorer
+    
+    try:
+        # Verifica che i file siano stati caricati
+        if 'sportello_file' not in request.files or 'guardaroba_file' not in request.files:
+            return jsonify({'success': False, 'error': 'File mancanti'}), 400
+        
+        sportello_file = request.files['sportello_file']
+        guardaroba_file = request.files['guardaroba_file']
+        db_name = request.form.get('db_name', 'gs')
+        
+        if sportello_file.filename == '' or guardaroba_file.filename == '':
+            return jsonify({'success': False, 'error': 'Nessun file selezionato'}), 400
+        
+        # Crea directory temporanea
+        temp_dir = tempfile.mkdtemp()
+        
+        # Salva i file temporaneamente
+        sportello_path = os.path.join(temp_dir, secure_filename(sportello_file.filename))
+        guardaroba_path = os.path.join(temp_dir, secure_filename(guardaroba_file.filename))
+        
+        sportello_file.save(sportello_path)
+        guardaroba_file.save(guardaroba_path)
+        
+        # Crea loader e storer
+        loader = XLSXLoader(sportello_path, guardaroba_path)
+        storer = DBStorer()
+        
+        # Esegui l'importazione
+        df_servizi, df_persone, df_bisogni, df_monitor = storer.new_db_from_xlsx_loader(loader, db_name)
+        
+        # Pulisci i file temporanei
+        os.remove(sportello_path)
+        os.remove(guardaroba_path)
+        os.rmdir(temp_dir)
+        
+        return jsonify({
+            'success': True,
+            'num_servizi': len(df_servizi),
+            'num_persone': len(df_persone),
+            'num_bisogni': len(df_bisogni),
+            'num_monitor': len(df_monitor)
+        })
+        
+    except Exception as e:
+        print(f"Error importing Excel: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/q', methods=['POST'])
 def q():

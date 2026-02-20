@@ -19,5 +19,11 @@ class DatabaseInterface():
         self.client = MongoClient(self.connection_string)
         self.db = self.client[self.db_name]
         
+    def set_db(self, db_name):
+        self.db_name = db_name
+        self.db = self.client[self.db_name]
+        os.environ['DB_NAME'] = db_name
+    
+        
 DBI = DatabaseInterface()
 DBI.connect()
