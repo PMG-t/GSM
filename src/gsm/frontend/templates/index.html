@@ -6,7 +6,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Collegamento a Bootstrap CSS -->
     <link href="static/libs/bootstrap/bootstrap-5.3.0.css" rel="stylesheet">
+    <link href="static/libs/tom-select/tom-select-2.4.1-bootstrap-5.css" rel="stylesheet">
     <link href="static/css/page.css" rel="stylesheet">
+    <link href="static/css/login.css" rel="stylesheet">
+    
+    <style>
+        body {
+            overflow: hidden;
+        }
+
+        .content {
+            padding: 0 !important;
+        }
+        
+        .config-page {
+            height: 100vh;
+            display: flex;
+        }
+        
+        .form-column {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: white;
+            overflow-y: auto;
+        }
+        
+        .form-container {
+            max-width: 450px;
+            width: 100%;
+        }
+        
+        .image-column {
+            flex: 1;
+            height: 100vh;
+            background: url('static/imgs/ele-bg.png') repeat;
+            background-size: 300px 300px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .form-container h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 3px;
+        }
+        
+        .form-container .subtitle {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .config-section h5 {
+            color: #e71945;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .status-badge.active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #e71945;
+            box-shadow: 0 0 0 0.2rem rgba(231, 25, 69, 0.15);
+        }
+        
+        .form-label {
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .mb-3 {
+            margin-bottom: 10px !important;
+        }
+        
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 7px 14px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background-color: #e71945;
+            border-color: #e71945;
+        }
+        
+        .btn-primary:hover {
+            background-color: #c91639;
+            border-color: #c91639;
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #dee2e6, transparent);
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 992px) {
+            .config-page {
+                flex-direction: column;
+            }
+            
+            .image-column {
+                min-height: 250px;
+                order: -1;
+            }
+            
+            .image-content h2 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -14,14 +157,106 @@
     {% include 'sidebar.html' %}
 
     <div class="content">
-        <h1 class="mb-4">{% block heading %}Home{% endblock %}</h1>
-        {% block content %}
-        <p>Contenuto della pagina...</p>
-        {% endblock %}
+        <div class="config-page">
+            <!-- Colonna Form (Sinistra) -->
+            <div class="form-column">
+                <div class="form-container">
+                    <h1>Impostazioni</h1>
+                    <p class="subtitle">Configura il tuo accesso al sistema</p>
+                    
+                    <!-- Sezione Utente -->
+                    <div class="config-section">
+                        <h5>Chi sei?</h5>
+                        
+                        <!-- Info utente loggato -->
+                        <div id="userLoggedInfo" class="d-none">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Sei loggato come:</strong>
+                                    <span class="status-badge active ms-2" id="currentUsername">-</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="logoutBtn">
+                                    <span id="logoutBtnText">Esci</span>
+                                    <span id="logoutBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Form login -->
+                        <form id="loginForm" class="d-none">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" placeholder="Inserisci username" required autocomplete="username">
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" placeholder="Inserisci password" required autocomplete="current-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" id="loginBtn">
+                                <span id="loginBtnText">Accedi</span>
+                                <span id="loginBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                            </button>
+                            <div id="loginErrorMessage" class="alert alert-danger mt-3 d-none"></div>
+                        </form>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <!-- Sezione Database -->
+                    <div class="config-section">
+                        <h5>Su che database lavori?</h5>
+                        
+                        <!-- Info database selezionato -->
+                        <div id="dbSelectedInfo" class="d-none">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Stai lavorando su:</strong>
+                                    <span class="status-badge active ms-2" id="currentDbName">-</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="changeDbBtn">Cambia</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Form selezione database -->
+                        <div id="dbSelectorForm" class="d-none">
+                            <div class="mb-3">
+                                <label for="dbSelect" class="form-label">Scegli quale database usare</label>
+                                <select id="dbSelect" class="form-select" placeholder="Seleziona...">
+                                    <option value="">Caricamento...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-primary" id="selectDbBtn">
+                                    <span id="selectBtnText">Ok, usa questo</span>
+                                    <span id="selectBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                                </button>
+                                <a href="/import" class="btn btn-outline-success">
+                                    Creane uno nuovo
+                                </a>
+                            </div>
+                            
+                            <div id="dbErrorMessage" class="alert alert-danger mt-3 d-none"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Link navigazione -->
+                    <div class="text-center mt-3" id="navigationLinks" style="display: none;">
+                        <a href="/persone" class="btn btn-success btn-lg w-100">Ok, iniziamo! →</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Colonna Immagine (Destra) -->
+            <div class="image-column">
+            </div>
+        </div>
     </div>
 
     
     <script src="static/libs/bootstrap/bootstrap-5.3.0.js"></script>
+    <script src="static/libs/tom-select/tom-select-2.4.1-bootstrap-5.js"></script>
+    <script src="static/js/config.js"></script>
 </body>
 
 </html>

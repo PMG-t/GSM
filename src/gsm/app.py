@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from datetime import timedelta
 from .db import DBI
 
 
@@ -10,8 +11,9 @@ def create_app():
         template_folder="frontend/templates"
     )
     
-    # Configurazione per sessioni (necessarie per l'importazione in due fasi)
+    # Configurazione per sessioni (necessarie per l'importazione in due fasi e autenticazione)
     app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Sessione dura 7 giorni
     
     CORS(app)
     

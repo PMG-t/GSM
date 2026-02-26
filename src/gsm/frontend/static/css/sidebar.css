@@ -20,3 +20,20 @@
 .sidebar .section-name {
     font-weight: 500;
 }
+
+.sidebar .system-info-link {
+    color: inherit;
+    padding: 8px;
+    border-radius: .375rem;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar .system-info-link:hover {
+    background-color: rgba(229, 25, 69, 0.08);
+}
+
+.sidebar .system-value {
+    color: #f56c89;
+    font-weight: 500;
+    font-size: 0.85rem;
+}

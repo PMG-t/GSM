@@ -1,0 +1,77 @@
+.login-container {
+    max-width: 450px;
+    margin: 80px auto;
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+}
+
+.login-card h2 {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 30px;
+}
+
+.user-logged-info {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.user-logged-info h5 {
+    color: #155724;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.user-logged-info strong {
+    color: #e71945;
+}
+
+.login-card .form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.login-card .form-control {
+    padding: 10px 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+.login-card .form-control:focus {
+    border-color: #e71945;
+    box-shadow: 0 0 0 0.2rem rgba(231, 25, 69, 0.15);
+}
+
+.login-card .btn-primary {
+    background-color: #e71945;
+    border-color: #e71945;
+    padding: 10px;
+    font-weight: 500;
+}
+
+.login-card .btn-primary:hover {
+    background-color: #c31538;
+    border-color: #c31538;
+}
+
+.login-card .btn-outline-danger {
+    border-color: #e71945;
+    color: #e71945;
+}
+
+.login-card .btn-outline-danger:hover {
+    background-color: #e71945;
+    border-color: #e71945;
+    color: white;
+}

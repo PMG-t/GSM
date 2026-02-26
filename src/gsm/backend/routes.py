@@ -1,9 +1,160 @@
 import json
 import uuid
-from flask import render_template, request, jsonify, current_app as app, session
+from functools import wraps
+from flask import render_template, request, jsonify, current_app as app, session, redirect, url_for
 from markupsafe import escape
 from ..db import Q
+from ..db import DBI
+from ..db.auth_manager import AuthManager
 
+
+def require_db(f):
+    """Decorator to ensure a database is selected before accessing a route"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not DBI.is_db_selected():
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# ==================== DB Selection API ====================
+
+@app.route('/api/current-db')
+def api_current_db():
+    """Get the currently selected database"""
+    db_name = DBI.get_db_name()
+    return jsonify({
+        'success': True,
+        'db_name': db_name,
+        'is_selected': DBI.is_db_selected()
+    })
+
+
+@app.route('/api/list-databases')
+def api_list_databases():
+    """List all available databases"""
+    try:
+        databases = DBI.list_databases()
+        return jsonify({
+            'success': True,
+            'databases': databases
+        })
+    except Exception as e:
+        print(f"Error listing databases: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/select-db', methods=['POST'])
+def api_select_db():
+    """Select a database to work with"""
+    try:
+        data = request.json
+        db_name = data.get('db_name')
+        
+        if not db_name:
+            return jsonify({
+                'success': False,
+                'error': 'Nome database mancante'
+            }), 400
+        
+        # Imposta il database
+        DBI.set_db(db_name)
+        
+        return jsonify({
+            'success': True,
+            'db_name': db_name,
+            'message': f'Database "{db_name}" selezionato con successo'
+        })
+        
+    except Exception as e:
+        print(f"Error selecting database: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ==================== Authentication API ====================
+
+@app.route('/api/current-user')
+def api_current_user():
+    """Get the currently logged in user"""
+    username = session.get('username')
+    return jsonify({
+        'success': True,
+        'username': username,
+        'is_authenticated': username is not None
+    })
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    """Login user"""
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Username e password richiesti'
+            }), 400
+        
+        # Valida le credenziali usando AuthManager
+        result = AuthManager.validate_user(username, password)
+        
+        if not result['success']:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 401
+        
+        # Salva username e ruolo in sessione
+        session['username'] = username
+        session['role'] = result.get('role', 'user')
+        session.permanent = True
+        
+        return jsonify({
+            'success': True,
+            'username': username,
+            'role': result.get('role', 'user'),
+            'message': 'Login effettuato con successo'
+        })
+        
+    except Exception as e:
+        print(f"Error during login: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    """Logout user"""
+    try:
+        username = session.get('username')
+        session.pop('username', None)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Logout effettuato per {username}'
+        })
+        
+    except Exception as e:
+        print(f"Error during logout: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ==================== Main Routes ====================
 
 @app.route('/')
 def index():
@@ -11,26 +162,32 @@ def index():
 
 
 @app.route('/persone')
+@require_db
 def persone():
     return render_template('persone.html')
 
 @app.route('/aggiornamenti')
+@require_db
 def aggiornamenti():
     return render_template('aggiornamenti.html')
 
 @app.route('/servizi')
+@require_db
 def servizi():
     return render_template('servizi.html')
 
 @app.route('/bisogni')
+@require_db
 def bisogni():
     return render_template('bisogni.html')
 
 @app.route('/categoria-bisogno/<categoria>')
+@require_db
 def categoria_bisogno(categoria):
     return render_template('categoria-bisogno.html', categoria=categoria)
 
 @app.route('/dati_categoria_bisogno', methods=['POST'])
+@require_db
 def dati_categoria_bisogno():
     try:
         data = request.json
@@ -56,11 +213,13 @@ def dati_categoria_bisogno():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/report')
+@require_db
 def report():
     return render_template('report.html')
 
 
 @app.route('/servizio/<servizio_id>')
+@require_db
 def servizio(servizio_id):
     try:
         servizio_data = Q.QUERY_NAMES_MAP['servizio'](servizio_id)
@@ -72,6 +231,7 @@ def servizio(servizio_id):
         return str(e), 500
 
 @app.route('/dati_servizio', methods=['POST'])
+@require_db
 def dati_servizio():
     try:
         data = request.json
@@ -92,10 +252,12 @@ def dati_servizio():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/new-persona')
+@require_db
 def new_persona():
     return render_template('new-persona.html')
 
 @app.route('/create-persona', methods=['POST'])
+@require_db
 def create_persona():
     try:
         data = request.json
@@ -106,6 +268,7 @@ def create_persona():
         return jsonify({'error': str(e), 'success': False}), 500
 
 @app.route('/unique-values/<field_name>', methods=['GET'])
+@require_db
 def unique_values(field_name):
     try:
         values = Q.QUERY_NAMES_MAP['get_unique_values'](field_name)
@@ -115,6 +278,7 @@ def unique_values(field_name):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/delete-aggiornamento', methods=['POST'])
+@require_db
 def delete_aggiornamento():
     try:
         data = request.json
@@ -139,6 +303,7 @@ def delete_aggiornamento():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/edit-aggiornamento', methods=['POST'])
+@require_db
 def edit_aggiornamento():
     try:
         data = request.json
@@ -167,6 +332,7 @@ def edit_aggiornamento():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/persona/<persona_id>')
+@require_db
 def persona(persona_id):
     try:
         persona_data = Q.QUERY_NAMES_MAP['persona'](persona_id)
@@ -178,6 +344,7 @@ def persona(persona_id):
         return str(e), 500
 
 @app.route('/add-aggiornamento', methods=['POST'])
+@require_db
 def add_aggiornamento():
     try:
         data = request.json
@@ -204,6 +371,7 @@ def add_aggiornamento():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/add-servizio', methods=['POST'])
+@require_db
 def add_servizio():
     try:
         data = request.json
@@ -224,6 +392,7 @@ def add_servizio():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/add-bisogno', methods=['POST'])
+@require_db
 def add_bisogno():
     try:
         data = request.json
@@ -244,6 +413,7 @@ def add_bisogno():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/add-monitor', methods=['POST'])
+@require_db
 def add_monitor():
     try:
         data = request.json
@@ -264,6 +434,7 @@ def add_monitor():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/create-monitor', methods=['POST'])
+@require_db
 def create_monitor():
     try:
         data = request.json
@@ -284,6 +455,7 @@ def create_monitor():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/remove-aggiornamento', methods=['POST'])
+@require_db
 def remove_aggiornamento():
     try:
         data = request.json
@@ -308,6 +480,7 @@ def remove_aggiornamento():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/update-aggiornamento', methods=['POST'])
+@require_db
 def update_aggiornamento():
     try:
         data = request.json
@@ -338,6 +511,7 @@ def update_aggiornamento():
 
 @app.route('/import')
 def import_page():
+    """Pagina di import - accessibile anche senza DB per creare nuovi database"""
     return render_template('import.html')
 
 
@@ -346,6 +520,7 @@ def preview_excel():
     """
     Carica i file Excel e genera un'anteprima dei dati persone.
     Salva i file temporaneamente e ritorna i primi 200 record.
+    Accessibile anche senza DB per creare nuovi database.
     """
     import os
     import tempfile
@@ -411,6 +586,7 @@ def preview_excel():
 def confirm_import():
     """
     Conferma l'importazione e scrive i dati nel database.
+    Imposta il database se non già selezionato.
     """
     import os
     from ..db.migrator.loader import XLSXLoader
@@ -505,6 +681,7 @@ def cancel_import():
 
 
 @app.route('/import-excel', methods=['POST'])
+@require_db
 def import_excel():
     """
     Importazione diretta senza anteprima (mantenuto per compatibilità).
@@ -565,6 +742,7 @@ def import_excel():
 
 
 @app.route('/q', methods=['POST'])
+@require_db
 def q():
     
     query = request.json.get('query')

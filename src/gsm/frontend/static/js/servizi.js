@@ -21,10 +21,34 @@ const Servizi = (() => {
             .then(response => response.json())
             .then(data => {
                 console.log('Servizi ricevuti:', data);
-                serviziData = data.data;
-                renderServizi(data.data);
+                serviziData = sortServizi(data.data);
+                renderServizi(serviziData);
             })
             .catch(error => console.error('Errore nel caricamento servizi:', error));
+    }
+
+    function sortServizi(servizi) {
+        return servizi.sort((a, b) => {
+            const nomeA = (a.nome_servizio || a.descrizione_servizio || '').toLowerCase();
+            const nomeB = (b.nome_servizio || b.descrizione_servizio || '').toLowerCase();
+            
+            // Priorità 1: "sportello"
+            const isSprtelloA = nomeA.includes('sportello');
+            const isSprtelloB = nomeB.includes('sportello');
+            
+            if (isSprtelloA && !isSprtelloB) return -1;
+            if (!isSprtelloA && isSprtelloB) return 1;
+            
+            // Priorità 2: "guardaroba"
+            const isGuardarobaA = nomeA.includes('guardaroba');
+            const isGuardarobaB = nomeB.includes('guardaroba');
+            
+            if (isGuardarobaA && !isGuardarobaB) return -1;
+            if (!isGuardarobaA && isGuardarobaB) return 1;
+            
+            // Priorità 3: ordine alfabetico
+            return nomeA.localeCompare(nomeB, 'it');
+        });
     }
 
     function renderServizi(servizi) {

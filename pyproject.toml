@@ -24,7 +24,8 @@ dependencies = [
     "pymongo",
     "Flask",
     "flask-cors",
-    "python-dotenv"
+    "python-dotenv",
+    "passlib"
 ]
 
 [project.urls]

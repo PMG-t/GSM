@@ -172,9 +172,7 @@ class XLSXLoader:
         df_guardaroba['guardaroba'] = True
 
         df = df_sportello.merge(df_guardaroba, on='nome_cognome', how='outer', suffixes=(None, '_gs'))
-        df['sportello'] = df['sportello'].fillna(False)
-        df['guardaroba'] = df['guardaroba'].fillna(False)
-
+        
         gscols = [c for c in df.columns if c.endswith('_gs')]
         for idx,persona in df.iterrows():
             for gsc in gscols:

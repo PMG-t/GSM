@@ -210,3 +210,4 @@ data/
 migrator_test_data/
 test/*
 *.bat
+*.tsv

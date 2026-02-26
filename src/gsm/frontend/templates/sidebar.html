@@ -9,6 +9,24 @@
     <h5 class="mb-4">Guardaroba<br>solidale <span style="color: #e71945;">★</span></h5>
 
     <hr>
+    
+    <!-- Sistema: Database & Utente -->
+    <div class="section mb-3">
+        <h6 class="section-name text-muted">Configurazione</h6>
+        
+        <a href="{{ url_for('index') }}" class="system-info-link text-decoration-none d-block py-2" title="Cambia impostazioni">
+            <div class="d-flex justify-content-between align-items-center px-2">
+                <small class="text-muted">DB:</small>
+                <strong id="sidebarDbName" class="system-value">-</strong>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-2 mt-1">
+                <small class="text-muted">User:</small>
+                <small id="sidebarUserName" class="system-value">-</small>
+            </div>
+        </a>
+    </div>
+
+    <hr>
 
     <!-- <div class="section mb-3">
         <h6 class="section-name text-muted">Generale</h6>
@@ -51,3 +69,39 @@
     </div>
     
 </div>
+
+<script>
+// Mostra il nome del database e utente corrente nella sidebar
+fetch('/api/current-db')
+    .then(res => res.json())
+    .then(data => {
+        const dbNameEl = document.getElementById('sidebarDbName');
+        if (data.success && data.db_name) {
+            dbNameEl.textContent = data.db_name;
+        } else {
+            dbNameEl.textContent = 'non impostato';
+            dbNameEl.style.fontStyle = 'italic';
+            dbNameEl.style.opacity = '0.6';
+        }
+    })
+    .catch(err => {
+        console.error('Error fetching current DB:', err);
+        document.getElementById('sidebarDbName').textContent = 'errore';
+    });
+
+fetch('/api/current-user')
+    .then(res => res.json())
+    .then(data => {
+        const userNameEl = document.getElementById('sidebarUserName');
+        if (data.success && data.username) {
+            userNameEl.textContent = data.username;
+        } else {
+            userNameEl.textContent = 'ospite';
+            userNameEl.style.fontStyle = 'italic';
+            userNameEl.style.opacity = '0.6';
+        }
+    })
+    .catch(err => {
+        console.error('Error fetching current user:', err);
+    });
+</script>
