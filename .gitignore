@@ -209,5 +209,10 @@ __marimo__/
 data/
 migrator_test_data/
 test/*
-*.bat
 *.tsv
+
+*.bat
+!install-git.bat
+!clone-repo.bat
+!update-repo.bat
+!launch.bat

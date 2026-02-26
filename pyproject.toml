@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/PMG-t/CMGS"
+Homepage = "https://github.com/PMG-t/GSM"
 
 [tool.setuptools.packages]
 find = { where = ["src"], include = ["gsm*"] }
