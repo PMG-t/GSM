@@ -15,6 +15,12 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
 
     <title>Persona - {{ persona.cognome }} {{ persona.nome }}</title>
+
+    <style>
+        #anagraficaContainer p {
+            margin-bottom: 0 !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -24,47 +30,119 @@
     <div class="content">
 
         <div class="container">
-            <h1>{{ persona.cognome }} {{ persona.nome }}</h1>
-            
-            <div class="card mt-4">
-                <div class="card-body">
-                    <h5 class="card-title">Informazioni Personali</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Cognome:</strong> {{ persona.cognome }}</p>
-                            <p><strong>Nome:</strong> {{ persona.nome }}</p>
-                            <p><strong>Data di nascita:</strong> {{ persona.data_nascita }}</p>
-                            <p><strong>Età:</strong> {{ persona.eta }}</p>
-                            <p><strong>Luogo di nascita:</strong> {{ persona.luogo_nascita }}</p>
-                            <p><strong>Genere:</strong> {{ persona.genere }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Città:</strong> {{ persona.citta }}</p>
-                            <p><strong>Documento:</strong> {{ persona.documento }}</p>
-                            <p><strong>Telefono:</strong> {{ persona.telefono }}</p>
-                            <p><strong>Stato civile:</strong> {{ persona.stato_civile }}</p>
-                            <p><strong>Figli:</strong> {{ persona.figli }}</p>
+
+            <!-- Sezione Anagrafica -->
+            <div id="anagraficaContainer">
+                <h1>{{ persona.cognome }} {{ persona.nome }}</h1>
+                
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Informazioni Personali</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="editable-field" data-field="cognome" data-type="text">
+                                    <strong>Cognome:</strong> 
+                                    <span class="field-value">{{ persona.cognome }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('cognome')">✏️</button>
+                                </p>
+                                <p class="editable-field" data-field="nome" data-type="text">
+                                    <strong>Nome:</strong> 
+                                    <span class="field-value">{{ persona.nome }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('nome')">✏️</button>
+                                </p>
+                                <p class="editable-field" data-field="data_nascita" data-type="date">
+                                    <strong>Data di nascita:</strong> 
+                                    <span class="field-value">{{ persona.data_nascita }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('data_nascita')">✏️</button>
+                                </p>
+                                <p><strong>Età:</strong> {{ persona.eta }}</p>
+                                <p class="editable-field" data-field="luogo_nascita" data-type="text">
+                                    <strong>Luogo di nascita:</strong> 
+                                    <span class="field-value">{{ persona.luogo_nascita }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('luogo_nascita')">✏️</button>
+                                </p>
+                                <p class="editable-field" data-field="genere" data-type="select" data-options='["M","F","Altro"]'>
+                                    <strong>Genere:</strong> 
+                                    <span class="field-value">{{ persona.genere }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('genere')">✏️</button>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="editable-field" data-field="citta" data-type="text">
+                                    <strong>Città:</strong> 
+                                    <span class="field-value">{{ persona.citta }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('citta')">✏️</button>
+                                </p>
+                                <p class="editable-field" data-field="documento" data-type="tom-select">
+                                    <strong>Documento:</strong> 
+                                    <span class="field-value">{{ persona.documento }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('documento')">✏️</button>
+                                </p>
+                                <p class="editable-field" data-field="telefono" data-type="text">
+                                    <strong>Telefono:</strong> 
+                                    <span class="field-value">{{ persona.telefono }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('telefono')">✏️</button>
+                                </p>
+                                <p class="editable-field" data-field="stato_civile" data-type="tom-select">
+                                    <strong>Stato civile:</strong> 
+                                    <span class="field-value">{{ persona.stato_civile }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('stato_civile')">✏️</button>
+                                </p>
+                                <p class="editable-field" data-field="figli" data-type="text">
+                                    <strong>Figli:</strong> 
+                                    <span class="field-value">{{ persona.figli }}</span>
+                                    <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('figli')">✏️</button>
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title">Situazione Abitativa e Sociale</h5>
-                    <p><strong>Condizione abitativa:</strong> {{ persona.condizione_abitativa }}</p>
-                    <p><strong>Categoria ETHOS:</strong> {{ persona.categoria_ethos }}</p>
-                    <p><strong>Residenza:</strong> {{ persona.residenza }}</p>
-                    <p><strong>Servizi sociali:</strong> {{ persona.servizi_sociali }}</p>
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Situazione Abitativa e Sociale</h5>
+                        <p class="editable-field" data-field="condizione_abitativa" data-type="tom-select">
+                            <strong>Condizione abitativa:</strong> 
+                            <span class="field-value">{{ persona.condizione_abitativa }}</span>
+                            <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('condizione_abitativa')">✏️</button>
+                        </p>
+                        <p class="editable-field" data-field="categoria_ethos" data-type="tom-select">
+                            <strong>Categoria ETHOS:</strong> 
+                            <span class="field-value">{{ persona.categoria_ethos }}</span>
+                            <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('categoria_ethos')">✏️</button>
+                        </p>
+                        <p class="editable-field" data-field="residenza" data-type="tom-select">
+                            <strong>Residenza:</strong> 
+                            <span class="field-value">{{ persona.residenza }}</span>
+                            <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('residenza')">✏️</button>
+                        </p>
+                        <p class="editable-field" data-field="servizi_sociali" data-type="tom-select">
+                            <strong>Servizi sociali:</strong> 
+                            <span class="field-value">{{ persona.servizi_sociali }}</span>
+                            <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('servizi_sociali')">✏️</button>
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title">Lavoro e Istruzione</h5>
-                    <p><strong>Lavoro:</strong> {{ persona.lavoro }}</p>
-                    <p><strong>Istruzione:</strong> {{ persona.istruzione }}</p>
-                    <p><strong>In carico presso:</strong> {{ persona.in_carico_presso }}</p>
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Lavoro e Istruzione</h5>
+                        <p class="editable-field" data-field="lavoro" data-type="text">
+                            <strong>Lavoro:</strong> 
+                            <span class="field-value">{{ persona.lavoro }}</span>
+                            <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('lavoro')">✏️</button>
+                        </p>
+                        <p class="editable-field" data-field="istruzione" data-type="tom-select">
+                            <strong>Istruzione:</strong> 
+                            <span class="field-value">{{ persona.istruzione }}</span>
+                            <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('istruzione')">✏️</button>
+                        </p>
+                        <p class="editable-field" data-field="in_carico_presso" data-type="tom-select">
+                            <strong>In carico presso:</strong> 
+                            <span class="field-value">{{ persona.in_carico_presso }}</span>
+                            <button class="btn btn-sm btn-link edit-btn" onclick="PersonaDetail.editField('in_carico_presso')">✏️</button>
+                        </p>
+                    </div>
                 </div>
             </div>
 

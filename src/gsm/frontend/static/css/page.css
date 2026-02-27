@@ -140,3 +140,31 @@ body {
     overflow-y: auto;
     padding-right: 0.5rem;
 }
+
+/* Inline Edit Styles */
+.editable-field {
+    position: relative;
+    padding: 0.25rem 0;
+}
+
+.editable-field .edit-btn {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+    margin-left: 0.5rem;
+}
+
+.editable-field:hover .edit-btn {
+    opacity: 1;
+}
+
+.editable-field .edit-btn:hover {
+    opacity: 1 !important;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tom-select-inline .ts-wrapper {
+    width: 250px !important;
+}

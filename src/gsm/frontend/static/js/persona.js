@@ -1280,7 +1280,237 @@ const PersonaDetail = (() => {
         }
     }
 
-    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams, toggleMonitorGridHeight };
+    // === Inline Editing Functions ===
+    
+    async function fetchUniqueValues(fieldName) {
+        try {
+            const response = await fetch(`/unique-values/${fieldName}`);
+            const data = await response.json();
+            return data.values || [];
+        } catch (error) {
+            console.error('Errore caricamento valori unici:', error);
+            return [];
+        }
+    }
+
+    async function editField(fieldName) {
+        const fieldElement = document.querySelector(`[data-field="${fieldName}"]`);
+        if (!fieldElement) return;
+
+        const fieldType = fieldElement.dataset.type;
+        const valueSpan = fieldElement.querySelector('.field-value');
+        const editBtn = fieldElement.querySelector('.edit-btn');
+        const currentValue = valueSpan.textContent.trim();
+
+        // Nascondi valore e pulsante edit
+        valueSpan.style.display = 'none';
+        editBtn.style.display = 'none';
+
+        // Crea il controllo appropriato
+        let editControl;
+        if (fieldType === 'date') {
+            editControl = document.createElement('input');
+            editControl.type = 'date';
+            editControl.className = 'form-control form-control-sm d-inline-block';
+            editControl.style.width = '180px';
+            // Converti da formato italiano a YYYY-MM-DD se necessario
+            if (currentValue && currentValue.includes('/')) {
+                const parts = currentValue.split('/');
+                if (parts.length === 3) {
+                    editControl.value = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                }
+            } else {
+                editControl.value = currentValue;
+            }
+        } else if (fieldType === 'select') {
+            editControl = document.createElement('select');
+            editControl.className = 'form-select form-select-sm d-inline-block';
+            editControl.style.width = '180px';
+            
+            const options = JSON.parse(fieldElement.dataset.options || '[]');
+            options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt;
+                option.textContent = opt;
+                if (opt === currentValue) option.selected = true;
+                editControl.appendChild(option);
+            });
+        } else if (fieldType === 'tom-select') {
+            editControl = document.createElement('select');
+            editControl.className = 'form-select form-select-sm d-inline-block tom-select-inline';
+            editControl.style.width = '250px';
+            editControl.id = `edit-${fieldName}`;
+            
+            // Carica valori unici e inizializza tom-select
+            const uniqueValues = await fetchUniqueValues(fieldName);
+            uniqueValues.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.textContent = val;
+                if (val === currentValue) option.selected = true;
+                editControl.appendChild(option);
+            });
+            
+            // Aggiungi option per valore corrente se non è nella lista
+            if (currentValue && !uniqueValues.includes(currentValue)) {
+                const option = document.createElement('option');
+                option.value = currentValue;
+                option.textContent = currentValue;
+                option.selected = true;
+                editControl.prepend(option);
+            }
+        } else {
+            // text
+            editControl = document.createElement('input');
+            editControl.type = 'text';
+            editControl.className = 'form-control form-control-sm d-inline-block';
+            editControl.style.width = '250px';
+            editControl.value = currentValue;
+        }
+
+        // Crea pulsanti conferma/annulla
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn btn-sm btn-success ms-2';
+        saveBtn.innerHTML = '✓';
+        saveBtn.onclick = () => saveFieldUpdate(fieldName);
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-sm btn-secondary ms-1';
+        cancelBtn.innerHTML = '✕';
+        cancelBtn.onclick = () => cancelFieldEdit(fieldName);
+
+        // Inserisci i controlli
+        valueSpan.after(editControl, saveBtn, cancelBtn);
+
+        // Inizializza tom-select se necessario
+        if (fieldType === 'tom-select') {
+            const tomSelectInstance = new TomSelect(`#edit-${fieldName}`, {
+                create: true,
+                sortField: {
+                    field: "text",
+                    direction: "asc"
+                }
+            });
+            editControl.tomSelectInstance = tomSelectInstance;
+        }
+
+        // Focus sul controllo
+        if (fieldType === 'tom-select') {
+            setTimeout(() => editControl.tomSelectInstance.focus(), 100);
+        } else {
+            editControl.focus();
+        }
+
+        // Salva con Enter (solo per input di testo e date)
+        if (fieldType === 'text' || fieldType === 'date') {
+            editControl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveFieldUpdate(fieldName);
+                }
+            });
+        }
+    }
+
+    async function saveFieldUpdate(fieldName) {
+        const fieldElement = document.querySelector(`[data-field="${fieldName}"]`);
+        if (!fieldElement) return;
+
+        const fieldType = fieldElement.dataset.type;
+        let editControl;
+
+        if (fieldType === 'tom-select') {
+            editControl = document.getElementById(`edit-${fieldName}`);
+            var newValue = editControl.tomSelectInstance.getValue();
+        } else {
+            editControl = fieldElement.querySelector('input, select');
+            var newValue = editControl.value;
+        }
+
+        if (!newValue) {
+            alert('Il campo non può essere vuoto');
+            return;
+        }
+
+        try {
+            const response = await fetch('/update-persona', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    persona_id: personaData._id,
+                    field_name: fieldName,
+                    field_value: newValue
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Aggiorna il valore visualizzato
+                const valueSpan = fieldElement.querySelector('.field-value');
+                
+                // Formatta la data se necessario
+                if (fieldType === 'date' && newValue) {
+                    const dateParts = newValue.split('-');
+                    if (dateParts.length === 3) {
+                        valueSpan.textContent = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    } else {
+                        valueSpan.textContent = newValue;
+                    }
+                    
+                    // Se è data_nascita, aggiorna anche l'età
+                    if (fieldName === 'data_nascita') {
+                        // Ricarica la pagina per aggiornare l'età
+                        location.reload();
+                        return;
+                    }
+                } else {
+                    valueSpan.textContent = newValue;
+                }
+
+                // Aggiorna i dati locali
+                personaData[fieldName] = newValue;
+
+                // Rimuovi i controlli di edit e ripristina la visualizzazione
+                cancelFieldEdit(fieldName, false);
+
+                // Mostra messaggio di successo
+                console.log('Campo aggiornato con successo');
+            } else {
+                alert('Errore nell\'aggiornamento: ' + (result.error || 'Errore sconosciuto'));
+            }
+        } catch (error) {
+            console.error('Errore nell\'aggiornamento del campo:', error);
+            alert('Errore nella comunicazione con il server');
+        }
+    }
+
+    function cancelFieldEdit(fieldName, restoreValue = true) {
+        const fieldElement = document.querySelector(`[data-field="${fieldName}"]`);
+        if (!fieldElement) return;
+
+        const fieldType = fieldElement.dataset.type;
+        const valueSpan = fieldElement.querySelector('.field-value');
+        const editBtn = fieldElement.querySelector('.edit-btn');
+
+        // Rimuovi i controlli di edit
+        if (fieldType === 'tom-select') {
+            const editControl = document.getElementById(`edit-${fieldName}`);
+            if (editControl && editControl.tomSelectInstance) {
+                editControl.tomSelectInstance.destroy();
+            }
+        }
+
+        const controls = fieldElement.querySelectorAll('input, select, button:not(.edit-btn)');
+        controls.forEach(control => control.remove());
+
+        // Ripristina la visualizzazione
+        valueSpan.style.display = 'inline';
+        editBtn.style.display = 'inline';
+    }
+
+    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams, toggleMonitorGridHeight, editField };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

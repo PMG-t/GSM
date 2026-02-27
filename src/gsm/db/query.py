@@ -481,6 +481,41 @@ def create_persona(persona_data):
     }
 
 @q
+def update_persona(persona_id, field_name, field_value):
+    """
+    Updates a single field of a persona document.
+    """
+    from bson import ObjectId
+    from datetime import datetime
+    
+    # Converti data_nascita da stringa a datetime se è questo campo
+    if field_name == 'data_nascita' and field_value:
+        field_value = datetime.fromisoformat(field_value)
+    
+    # Se aggiorniamo data_nascita, ricalcola anche l'età
+    update_data = {field_name: field_value}
+    
+    if field_name == 'data_nascita' and field_value:
+        birth_date = field_value if isinstance(field_value, datetime) else datetime.fromisoformat(field_value)
+        today = datetime.now()
+        age = today.year - birth_date.year
+        month_diff = today.month - birth_date.month
+        if month_diff < 0 or (month_diff == 0 and today.day < birth_date.day):
+            age -= 1
+        update_data['eta'] = age
+    
+    # Aggiorna il documento
+    result = DBI.db['persone'].update_one(
+        {'_id': ObjectId(persona_id)},
+        {'$set': update_data}
+    )
+    
+    return {
+        'success': result.modified_count > 0,
+        'modified_count': result.modified_count
+    }
+
+@q
 def get_unique_values(field_name):
     """
     Returns unique values for a specific field from persone collection.

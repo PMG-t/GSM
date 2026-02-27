@@ -267,6 +267,24 @@ def create_persona():
         print(f"Error creating persona: {e}")
         return jsonify({'error': str(e), 'success': False}), 500
 
+@app.route('/update-persona', methods=['POST'])
+@require_db
+def update_persona():
+    try:
+        data = request.json
+        persona_id = data.get('persona_id')
+        field_name = data.get('field_name')
+        field_value = data.get('field_value')
+        
+        if not all([persona_id, field_name]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        result = Q.QUERY_NAMES_MAP['update_persona'](persona_id, field_name, field_value)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error updating persona: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
 @app.route('/unique-values/<field_name>', methods=['GET'])
 @require_db
 def unique_values(field_name):
