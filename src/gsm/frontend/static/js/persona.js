@@ -253,6 +253,8 @@ const PersonaDetail = (() => {
 
     function showAddAggModal(tipo, itemId, itemNome) {
         const tipoLabel = tipo === 'servizio' ? 'servizio' : 'bisogno';
+        const now = new Date();
+        const localISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         const modalHtml = `
             <div class="modal fade" id="addAggModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
@@ -262,6 +264,10 @@ const PersonaDetail = (() => {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="aggData" class="form-label">Data e ora</label>
+                                <input type="datetime-local" id="aggData" class="form-control" value="${localISO}">
+                            </div>
                             <label for="aggNote" class="form-label">Note</label>
                             <textarea id="aggNote" class="form-control" rows="4" style="resize: vertical; max-height: 200px;"></textarea>
                         </div>
@@ -284,7 +290,9 @@ const PersonaDetail = (() => {
         // Aggiungi listener al bottone salva
         document.getElementById('btnSaveAgg').addEventListener('click', () => {
             const note = document.getElementById('aggNote').value;
-            saveAggiornamento(tipo, itemId, note);
+            const dataValue = document.getElementById('aggData').value;
+            const dataISO = dataValue ? new Date(dataValue).toISOString() : new Date().toISOString();
+            saveAggiornamento(tipo, itemId, note, dataISO);
             modal.hide();
         });
 
@@ -296,6 +304,9 @@ const PersonaDetail = (() => {
     function showEditAggModal(tipo, itemId, dataISO, note) {
         const tipoLabel = tipo === 'servizio' ? 'servizio' : 'bisogno';
         const itemNome = tipo === 'servizio' ? serviziMap[itemId] : bisogniMap[itemId];
+        // Converti dataISO in formato locale per datetime-local (YYYY-MM-DDTHH:MM)
+        const origDate = new Date(dataISO);
+        const localISO = new Date(origDate.getTime() - origDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         const modalHtml = `
             <div class="modal fade" id="editAggModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
@@ -305,6 +316,10 @@ const PersonaDetail = (() => {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="editAggData" class="form-label">Data e ora</label>
+                                <input type="datetime-local" id="editAggData" class="form-control" value="${localISO}">
+                            </div>
                             <label for="editAggNote" class="form-label">Note</label>
                             <textarea id="editAggNote" class="form-control" rows="4" style="resize: vertical; max-height: 200px;">${note}</textarea>
                         </div>
@@ -327,7 +342,9 @@ const PersonaDetail = (() => {
         // Aggiungi listener al bottone salva
         document.getElementById('btnEditAgg').addEventListener('click', () => {
             const newNote = document.getElementById('editAggNote').value;
-            editAggiornamento(tipo, itemId, dataISO, newNote);
+            const newDataValue = document.getElementById('editAggData').value;
+            const newDataISO = newDataValue ? new Date(newDataValue).toISOString() : dataISO;
+            editAggiornamento(tipo, itemId, dataISO, newNote, newDataISO);
             modal.hide();
         });
 
@@ -336,13 +353,13 @@ const PersonaDetail = (() => {
         });
     }
 
-    function saveAggiornamento(tipo, itemId, note) {
+    function saveAggiornamento(tipo, itemId, note, dataISO) {
         const payload = {
             persona_id: personaData._id,
             tipo: tipo,
             item_id: itemId,
             note: note,
-            data: new Date().toISOString()
+            data: dataISO || new Date().toISOString()
         };
 
         console.log('Salvataggio aggiornamento:', payload);
@@ -389,14 +406,14 @@ const PersonaDetail = (() => {
             .catch(error => console.error('Errore nel salvataggio:', error));
     }
 
-    function editAggiornamento(tipo, itemId, oldDataISO, newNote) {
+    function editAggiornamento(tipo, itemId, oldDataISO, newNote, newDataISO) {
         const payload = {
             persona_id: personaData._id,
             tipo: tipo,
             item_id: itemId,
             old_data: oldDataISO,
             new_note: newNote,
-            new_data: new Date().toISOString()
+            new_data: newDataISO || new Date().toISOString()
         };
 
         console.log('Modifica aggiornamento:', payload);
