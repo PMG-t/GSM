@@ -361,6 +361,22 @@ def persona(persona_id):
         print(f"Error fetching persona: {e}")
         return str(e), 500
 
+@app.route('/delete-persona', methods=['POST'])
+@require_db
+def delete_persona():
+    try:
+        data = request.json
+        persona_id = data.get('persona_id')
+
+        if not persona_id:
+            return jsonify({'error': 'Missing persona_id'}), 400
+
+        result = Q.QUERY_NAMES_MAP['delete_persona'](persona_id)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error deleting persona: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/add-aggiornamento', methods=['POST'])
 @require_db
 def add_aggiornamento():

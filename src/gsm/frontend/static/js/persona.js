@@ -1510,7 +1510,54 @@ const PersonaDetail = (() => {
         editBtn.style.display = 'inline';
     }
 
-    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams, toggleMonitorGridHeight, editField };
+    function deletePersona() {
+        const nome = `${personaData.cognome} ${personaData.nome}`;
+        if (!confirm(`Sei sicuro di voler eliminare definitivamente la scheda di "${nome}"?\nQuesta operazione non può essere annullata.`)) {
+            return;
+        }
+
+        fetch('/delete-persona', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ persona_id: personaData._id })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modalHtml = `
+                        <div class="modal fade" id="deleteSuccessModal" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Scheda eliminata</h5>
+                                    </div>
+                                    <div class="modal-body">
+                                        La scheda di <strong>${nome}</strong> è stata eliminata con successo.
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-primary" id="btnDeleteSuccessOk">OK</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    const modal = new bootstrap.Modal(document.getElementById('deleteSuccessModal'), { backdrop: 'static', keyboard: false });
+                    modal.show();
+                    document.getElementById('btnDeleteSuccessOk').addEventListener('click', () => {
+                        window.location.href = '/persone';
+                    });
+                } else {
+                    alert('Errore durante l\'eliminazione della scheda.');
+                    console.error('Errore eliminazione persona:', data);
+                }
+            })
+            .catch(error => {
+                alert('Errore durante l\'eliminazione della scheda.');
+                console.error('Errore eliminazione persona:', error);
+            });
+    }
+
+    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams, toggleMonitorGridHeight, editField, deletePersona };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -704,3 +704,15 @@ def edit_aggiornamento(persona_id, tipo, item_id, old_data, new_note, new_data):
         'success': result.modified_count > 0,
         'modified_count': result.modified_count
     }
+
+@q
+def delete_persona(persona_id):
+    """
+    Deletes a persona document from the 'persone' collection.
+    """
+    from bson import ObjectId
+    result = DBI.db['persone'].delete_one({'_id': ObjectId(persona_id)})
+    return {
+        'success': result.deleted_count > 0,
+        'deleted_count': result.deleted_count
+    }
