@@ -761,3 +761,19 @@ def remove_bisogno_from_persona(persona_id, bisogno_id):
         'success': result.modified_count > 0,
         'modified_count': result.modified_count
     }
+
+@q
+def create_bisogno(nome_bisogno, categoria_bisogno, descrizione_bisogno):
+    """
+    Creates a new bisogno in the bisogni collection.
+    """
+    new_bisogno = {
+        'nome_bisogno': nome_bisogno,
+        'categoria_bisogno': categoria_bisogno,
+        'descrizione_bisogno': descrizione_bisogno
+    }
+    result = DBI.db['bisogni'].insert_one(new_bisogno)
+    return {
+        'success': result.inserted_id is not None,
+        'bisogno_id': str(result.inserted_id) if result.inserted_id else None
+    }

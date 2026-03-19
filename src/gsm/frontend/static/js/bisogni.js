@@ -125,6 +125,14 @@ const Bisogni = (() => {
                 `;
             }).join('');
 
+            // Chip "Nuovo bisogno"
+            const nuovaChip = `
+                <span class="badge bg-white text-muted bisogno-chip-new"
+                      style="cursor: pointer; margin: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.9rem;
+                             border: 1.5px dashed #aaa !important;"
+                      onclick="Bisogni.showCreateModal('${categoria.replace(/'/g, "\\'")}')">+ Nuovo bisogno</span>
+            `;
+
             const colClass = currentView === 'list' ? 'col-12' : 'col-md-6 col-lg-4';
             
             return `
@@ -141,7 +149,7 @@ const Bisogni = (() => {
                                    placeholder="Filtra bisogni in questa categoria..."
                                    style="max-width: 300px;">
                             <div class="bisogni-chips-container ${currentView === 'grid' ? 'grid-view' : ''}" data-categoria="${categoriaId}">
-                                ${chipsHtml}
+                                ${chipsHtml}${nuovaChip}
                             </div>
                         </div>
                     </div>
@@ -153,6 +161,148 @@ const Bisogni = (() => {
 
         // Setup filtri
         setupFilters();
+    }
+
+    function normalizeName(value) {
+        return value
+            .trim()
+            .replace(/\s+/g, ' ')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '_');
+    }
+
+    function cleanName(value) {
+        // Solo trim e spazi multipli → singolo spazio (il nome viene salvato così come scritto)
+        return value.trim().replace(/\s+/g, ' ');
+    }
+
+    function showCreateModal(categoria) {
+        const modalHtml = `
+            <div class="modal fade" id="createBisognoModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Nuovo bisogno — <em>${categoria}</em></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="nomeBisogno" class="form-label">Nome bisogno <span class="text-danger">*</span></label>
+                                <input type="text" id="nomeBisogno" class="form-control" maxlength="100">
+                                <div id="nomeBisognoError" class="invalid-feedback"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="descrizioneBisogno" class="form-label">Descrizione <span class="text-danger">*</span></label>
+                                <textarea id="descrizioneBisogno" class="form-control" maxlength="500" rows="3"></textarea>
+                                <div class="form-text"><span id="descBisognoCount">0</span>/500</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                            <button type="button" class="btn btn-primary" id="btnCreaBisogno">Crea</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        let existing = document.getElementById('createBisognoModal');
+        if (existing) existing.remove();
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('createBisognoModal'));
+        modal.show();
+
+        const nomeInput = document.getElementById('nomeBisogno');
+        const descInput = document.getElementById('descrizioneBisogno');
+        const nomeError = document.getElementById('nomeBisognoError');
+        const btnCrea = document.getElementById('btnCreaBisogno');
+        const descCount = document.getElementById('descBisognoCount');
+
+        descInput.addEventListener('input', () => {
+            descCount.textContent = descInput.value.length;
+        });
+
+        nomeInput.addEventListener('blur', () => {
+            validateNome(nomeInput.value);
+        });
+
+        function validateNome(value) {
+            const cleaned = cleanName(value);
+            if (!cleaned) {
+                setNomeError('Il nome è obbligatorio.');
+                return false;
+            }
+            const normalizedInput = normalizeName(cleaned);
+            const duplicate = bisogniData.some(b => normalizeName(b.nome_bisogno || '') === normalizedInput);
+            if (duplicate) {
+                setNomeError(`Esiste già un bisogno con nome simile a "${cleaned}".`);
+                return false;
+            }
+            clearNomeError();
+            return true;
+        }
+
+        function setNomeError(msg) {
+            nomeInput.classList.add('is-invalid');
+            nomeError.textContent = msg;
+            btnCrea.disabled = true;
+        }
+
+        function clearNomeError() {
+            nomeInput.classList.remove('is-invalid');
+            nomeError.textContent = '';
+            btnCrea.disabled = false;
+        }
+
+        btnCrea.addEventListener('click', () => {
+            const nome = cleanName(nomeInput.value).replace(/^./, c => c.toUpperCase());
+            const descrizione = descInput.value.trim().replace(/^./, c => c.toUpperCase());
+            nomeInput.value = nome;
+
+            if (!validateNome(nome)) return;
+
+            if (!descrizione) {
+                descInput.classList.add('is-invalid');
+                return;
+            }
+            descInput.classList.remove('is-invalid');
+
+            btnCrea.disabled = true;
+            fetch('/create-bisogno', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome_bisogno: nome,
+                    categoria_bisogno: categoria,
+                    descrizione_bisogno: descrizione
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        modal.hide();
+                        bisogniData.push({
+                            _id: data.bisogno_id,
+                            nome_bisogno: nome,
+                            categoria_bisogno: categoria,
+                            descrizione_bisogno: descrizione
+                        });
+                        renderBisogni();
+                    } else {
+                        alert('Errore nella creazione del bisogno: ' + (data.error || 'errore sconosciuto'));
+                        btnCrea.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Errore nella comunicazione con il server.');
+                    btnCrea.disabled = false;
+                });
+        });
+
+        document.getElementById('createBisognoModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
     }
 
     function setupFilters() {
@@ -327,7 +477,7 @@ const Bisogni = (() => {
         });
     }
 
-    return { init };
+    return { init, showCreateModal };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -417,6 +417,28 @@ def remove_bisogno():
         print(f"Error removing bisogno: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/create-bisogno', methods=['POST'])
+@require_db
+def create_bisogno():
+    try:
+        data = request.json
+        nome_bisogno = data.get('nome_bisogno')
+        categoria_bisogno = data.get('categoria_bisogno')
+        descrizione_bisogno = data.get('descrizione_bisogno')
+
+        if not all([nome_bisogno, categoria_bisogno, descrizione_bisogno]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        result = Q.QUERY_NAMES_MAP['create_bisogno'](
+            nome_bisogno=nome_bisogno,
+            categoria_bisogno=categoria_bisogno,
+            descrizione_bisogno=descrizione_bisogno
+        )
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error creating bisogno: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/add-aggiornamento', methods=['POST'])
 @require_db
 def add_aggiornamento():
