@@ -25,6 +25,10 @@ const GridPersone = (() => {
         "bisogni"
     ]
 
+    const HIDE_COLUMN_NAMES = [
+        'monitor'
+    ]
+
     let records_persone = [];
     let fields_persone = [];
 
@@ -165,7 +169,7 @@ const GridPersone = (() => {
                     headerName: field,
                     sortable: true,
                     filter: true,
-                    hide: !BASE_COLUMN_NAMES.includes(field)
+                    hide: !BASE_COLUMN_NAMES.includes(field) || HIDE_COLUMN_NAMES.includes(field)
                 };
                 
                 if (field === 'servizi' || field === 'bisogni') {
@@ -280,7 +284,8 @@ const GridPersone = (() => {
         const allCheckbox = allDiv.querySelector('input');
         allCheckbox.addEventListener('change', (e) => {
             const visible = e.target.checked;
-            gridApi.setColumnsVisible(fields_persone, visible);
+            const visibleFields = fields_persone.filter(f => !HIDE_COLUMN_NAMES.includes(f));
+            gridApi.setColumnsVisible(visibleFields, visible);
             panel.querySelectorAll('.form-check-input:not(#col-all):not(#col-base)').forEach(cb => {
                 cb.checked = visible;
             });
@@ -300,6 +305,7 @@ const GridPersone = (() => {
         baseCheckbox.addEventListener('change', (e) => {
             if (e.target.checked) {
                 fields_persone.forEach(f => {
+                    if (HIDE_COLUMN_NAMES.includes(f)) return;
                     const visible = BASE_COLUMN_NAMES.includes(f);
                     gridApi.setColumnsVisible([f], visible);
                     const cb = panel.querySelector(`#col-${f}`);
@@ -310,6 +316,7 @@ const GridPersone = (() => {
         });
 
         fields_persone.forEach(field => {
+            if (HIDE_COLUMN_NAMES.includes(field)) return;
             const isVisible = BASE_COLUMN_NAMES.includes(field);
             const div = document.createElement('div');
             div.className = 'form-check mb-1';
