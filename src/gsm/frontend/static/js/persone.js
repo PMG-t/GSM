@@ -266,7 +266,49 @@ const GridPersone = (() => {
     function createFieldPanel() {
         const panel = document.querySelector('#field-panel');
         panel.innerHTML = '<h5 class="mb-3">Colonne</h5>';
-        
+
+        // Checkbox "Mostra tutte"
+        const allChecked = fields_persone.every(f => BASE_COLUMN_NAMES.includes(f));
+        const allDiv = document.createElement('div');
+        allDiv.className = 'form-check mb-2 border-bottom pb-2';
+        allDiv.innerHTML = `
+            <input class="form-check-input" type="checkbox" id="col-all" ${allChecked ? 'checked' : ''}>
+            <label class="form-check-label fw-bold" for="col-all">Mostra tutte</label>
+        `;
+        panel.appendChild(allDiv);
+
+        const allCheckbox = allDiv.querySelector('input');
+        allCheckbox.addEventListener('change', (e) => {
+            const visible = e.target.checked;
+            gridApi.setColumnsVisible(fields_persone, visible);
+            panel.querySelectorAll('.form-check-input:not(#col-all):not(#col-base)').forEach(cb => {
+                cb.checked = visible;
+            });
+            baseCheckbox.checked = false;
+        });
+
+        // Checkbox "Solo colonne base"
+        const baseDiv = document.createElement('div');
+        baseDiv.className = 'form-check mb-2 border-bottom pb-2';
+        baseDiv.innerHTML = `
+            <input class="form-check-input" type="checkbox" id="col-base">
+            <label class="form-check-label fw-bold" for="col-base">Solo colonne base</label>
+        `;
+        panel.appendChild(baseDiv);
+
+        const baseCheckbox = baseDiv.querySelector('input');
+        baseCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                fields_persone.forEach(f => {
+                    const visible = BASE_COLUMN_NAMES.includes(f);
+                    gridApi.setColumnsVisible([f], visible);
+                    const cb = panel.querySelector(`#col-${f}`);
+                    if (cb) cb.checked = visible;
+                });
+                allCheckbox.checked = false;
+            }
+        });
+
         fields_persone.forEach(field => {
             const isVisible = BASE_COLUMN_NAMES.includes(field);
             const div = document.createElement('div');
@@ -280,6 +322,11 @@ const GridPersone = (() => {
             const checkbox = div.querySelector('input');
             checkbox.addEventListener('change', (e) => {
                 gridApi.setColumnsVisible([field], e.target.checked);
+                // Aggiorna stato "Mostra tutte"
+                const allVisible = [...panel.querySelectorAll('.form-check-input:not(#col-all):not(#col-base)')].every(cb => cb.checked);
+                allCheckbox.checked = allVisible;
+                // Deseleziona "Solo colonne base" se si modifica manualmente
+                baseCheckbox.checked = false;
             });
         });
     }
