@@ -192,13 +192,15 @@ const PersonaDetail = (() => {
         }
 
         const bisogniIds = Object.keys(personaData.bisogni);
-        const bisogniList = bisogniIds.map(id => {
+        const bisogniItems = bisogniIds.map(id => {
+            const bisognoObj = bisogniList.find(b => b._id === id);
             const nome = bisogniMap[id] || id;
+            const label = bisognoObj?.categoria_bisogno ? `${bisognoObj.categoria_bisogno} – ${nome}` : nome;
             const aggiornamenti = personaData.bisogni[id] || [];
             return `
                 <div class="bisogno-item mb-3">
                     <span class="badge bg-info" style="cursor: pointer;" onclick="PersonaDetail.toggleAggiornamenti('bisogno-${id}')">
-                        ${nome} <span class="badge bg-light text-dark ms-1">${aggiornamenti.length}</span>
+                        ${label} <span class="badge bg-light text-dark ms-1">${aggiornamenti.length}</span>
                     </span>
                     <div id="bisogno-${id}" class="aggiornamenti-section" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -212,7 +214,7 @@ const PersonaDetail = (() => {
                 </div>`;
         }).join('');
 
-        container.innerHTML = html + bisogniList;
+        container.innerHTML = html + bisogniItems;
     }
 
     function renderAggiornamenti(aggiornamenti, tipo, itemId) {
