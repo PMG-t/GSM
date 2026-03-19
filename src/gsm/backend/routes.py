@@ -528,6 +528,26 @@ def create_monitor():
         print(f"Error creating monitor: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/create-servizio', methods=['POST'])
+@require_db
+def create_servizio():
+    try:
+        data = request.json
+        nome_servizio = data.get('nome_servizio')
+        descrizione_servizio = data.get('descrizione_servizio')
+
+        if not all([nome_servizio, descrizione_servizio]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        result = Q.QUERY_NAMES_MAP['create_servizio'](
+            nome_servizio=nome_servizio,
+            descrizione_servizio=descrizione_servizio
+        )
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error creating servizio: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/remove-aggiornamento', methods=['POST'])
 @require_db
 def remove_aggiornamento():

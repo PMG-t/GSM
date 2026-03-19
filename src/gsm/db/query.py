@@ -459,6 +459,21 @@ def create_monitor(nome_monitor, descrizione_monitor):
     }
 
 @q
+def create_servizio(nome_servizio, descrizione_servizio):
+    """
+    Creates a new servizio in the servizi collection.
+    """
+    new_servizio = {
+        'nome_servizio': nome_servizio,
+        'descrizione_servizio': descrizione_servizio
+    }
+    result = DBI.db['servizi'].insert_one(new_servizio)
+    return {
+        'success': result.inserted_id is not None,
+        'servizio_id': str(result.inserted_id) if result.inserted_id else None
+    }
+
+@q
 def create_persona(persona_data):
     """
     Creates a new persona document.
