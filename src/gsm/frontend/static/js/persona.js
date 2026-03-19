@@ -163,9 +163,12 @@ const PersonaDetail = (() => {
                         ${nome} <span class="badge bg-light text-dark ms-1">${aggiornamenti.length}</span>
                     </span>
                     <div id="servizio-${id}" class="aggiornamenti-section" style="display: none;">
-                        <button class="btn btn-sm btn-success mb-2" onclick="PersonaDetail.showAddAggModal('servizio', '${id}', '${nome.replace(/'/g, "\\'")}')">
-                            + Aggiungi aggiornamento
-                        </button>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <button class="btn btn-sm btn-success" onclick="PersonaDetail.showAddAggModal('servizio', '${id}', '${nome.replace(/'/g, "\\'")}')">
+                                + Aggiungi aggiornamento
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="PersonaDetail.removeServizio('${id}', '${nome.replace(/'/g, "\\'")}')">Disiscrivi dal servizio</button>
+                        </div>
                         ${renderAggiornamenti(aggiornamenti, 'servizio', id)}
                     </div>
                 </div>`;
@@ -198,9 +201,12 @@ const PersonaDetail = (() => {
                         ${nome} <span class="badge bg-light text-dark ms-1">${aggiornamenti.length}</span>
                     </span>
                     <div id="bisogno-${id}" class="aggiornamenti-section" style="display: none;">
-                        <button class="btn btn-sm btn-success mb-2" onclick="PersonaDetail.showAddAggModal('bisogno', '${id}', '${nome.replace(/'/g, "\\'")}')">
-                            + Aggiungi aggiornamento
-                        </button>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <button class="btn btn-sm btn-success" onclick="PersonaDetail.showAddAggModal('bisogno', '${id}', '${nome.replace(/'/g, "\\'")}')">
+                                + Aggiungi aggiornamento
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="PersonaDetail.removeBisogno('${id}', '${nome.replace(/'/g, "\\'")}')">Disiscrivi dal bisogno</button>
+                        </div>
                         ${renderAggiornamenti(aggiornamenti, 'bisogno', id)}
                     </div>
                 </div>`;
@@ -1557,7 +1563,124 @@ const PersonaDetail = (() => {
             });
     }
 
-    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams, toggleMonitorGridHeight, editField, deletePersona };
+    function removeServizio(servizioId, servizioNome) {
+        if (!confirm(`Sei sicuro di voler disiscrivere ${personaData.cognome} ${personaData.nome} dal servizio "${servizioNome}"?\nVerranno eliminati anche tutti gli aggiornamenti associati.`)) {
+            return;
+        }
+
+        fetch('/remove-servizio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ persona_id: personaData._id, servizio_id: servizioId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Aggiorna i dati locali
+                    delete personaData.servizi[servizioId];
+
+                    const modalHtml = `
+                        <div class="modal fade" id="removeServizioSuccessModal" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Disiscrizione completata</h5>
+                                    </div>
+                                    <div class="modal-body">
+                                        La disiscrizione dal servizio <strong>${servizioNome}</strong> è avvenuta con successo.
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-primary" id="btnRemoveServizioOk">OK</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+
+                    let existingModal = document.getElementById('removeServizioSuccessModal');
+                    if (existingModal) existingModal.remove();
+
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    const modal = new bootstrap.Modal(document.getElementById('removeServizioSuccessModal'), { backdrop: 'static', keyboard: false });
+                    modal.show();
+
+                    document.getElementById('btnRemoveServizioOk').addEventListener('click', () => {
+                        modal.hide();
+                        renderServizi();
+                    });
+
+                    document.getElementById('removeServizioSuccessModal').addEventListener('hidden.bs.modal', function () {
+                        this.remove();
+                    });
+                } else {
+                    alert('Errore durante la disiscrizione dal servizio.');
+                    console.error('Errore disiscrizione servizio:', data);
+                }
+            })
+            .catch(error => {
+                alert('Errore durante la disiscrizione dal servizio.');
+                console.error('Errore disiscrizione servizio:', error);
+            });
+    }
+
+    function removeBisogno(bisognoId, bisognoNome) {
+        if (!confirm(`Sei sicuro di voler disiscrivere ${personaData.cognome} ${personaData.nome} dal bisogno "${bisognoNome}"?\nVerranno eliminati anche tutti gli aggiornamenti associati.`)) {
+            return;
+        }
+
+        fetch('/remove-bisogno', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ persona_id: personaData._id, bisogno_id: bisognoId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    delete personaData.bisogni[bisognoId];
+
+                    const modalHtml = `
+                        <div class="modal fade" id="removeBisognoSuccessModal" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Disiscrizione completata</h5>
+                                    </div>
+                                    <div class="modal-body">
+                                        La disiscrizione dal bisogno <strong>${bisognoNome}</strong> è avvenuta con successo.
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-primary" id="btnRemoveBisognoOk">OK</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+
+                    let existingModal = document.getElementById('removeBisognoSuccessModal');
+                    if (existingModal) existingModal.remove();
+
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    const modal = new bootstrap.Modal(document.getElementById('removeBisognoSuccessModal'), { backdrop: 'static', keyboard: false });
+                    modal.show();
+
+                    document.getElementById('btnRemoveBisognoOk').addEventListener('click', () => {
+                        modal.hide();
+                        renderBisogni();
+                    });
+
+                    document.getElementById('removeBisognoSuccessModal').addEventListener('hidden.bs.modal', function () {
+                        this.remove();
+                    });
+                } else {
+                    alert('Errore durante la disiscrizione dal bisogno.');
+                    console.error('Errore disiscrizione bisogno:', data);
+                }
+            })
+            .catch(error => {
+                alert('Errore durante la disiscrizione dal bisogno.');
+                console.error('Errore disiscrizione bisogno:', error);
+            });
+    }
+
+    return { init, toggleAggiornamenti, showAddAggModal, showEditAggModal, showAddItemModal, showAddMonitorModal, showAddMonitorRowModal, deleteAggiornamento, checkUrlParams, toggleMonitorGridHeight, editField, deletePersona, removeServizio, removeBisogno };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

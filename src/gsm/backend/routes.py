@@ -377,6 +377,46 @@ def delete_persona():
         print(f"Error deleting persona: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/remove-servizio', methods=['POST'])
+@require_db
+def remove_servizio():
+    try:
+        data = request.json
+        persona_id = data.get('persona_id')
+        servizio_id = data.get('servizio_id')
+
+        if not all([persona_id, servizio_id]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        result = Q.QUERY_NAMES_MAP['remove_servizio_from_persona'](
+            persona_id=persona_id,
+            servizio_id=servizio_id
+        )
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error removing servizio: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/remove-bisogno', methods=['POST'])
+@require_db
+def remove_bisogno():
+    try:
+        data = request.json
+        persona_id = data.get('persona_id')
+        bisogno_id = data.get('bisogno_id')
+
+        if not all([persona_id, bisogno_id]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        result = Q.QUERY_NAMES_MAP['remove_bisogno_from_persona'](
+            persona_id=persona_id,
+            bisogno_id=bisogno_id
+        )
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error removing bisogno: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/add-aggiornamento', methods=['POST'])
 @require_db
 def add_aggiornamento():

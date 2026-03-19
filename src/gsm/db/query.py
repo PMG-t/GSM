@@ -716,3 +716,33 @@ def delete_persona(persona_id):
         'success': result.deleted_count > 0,
         'deleted_count': result.deleted_count
     }
+
+@q
+def remove_servizio_from_persona(persona_id, servizio_id):
+    """
+    Removes a servizio (and all its aggiornamenti) from a persona.
+    """
+    from bson import ObjectId
+    result = DBI.db['persone'].update_one(
+        {'_id': ObjectId(persona_id)},
+        {'$unset': {f'servizi.{servizio_id}': ''}}
+    )
+    return {
+        'success': result.modified_count > 0,
+        'modified_count': result.modified_count
+    }
+
+@q
+def remove_bisogno_from_persona(persona_id, bisogno_id):
+    """
+    Removes a bisogno (and all its aggiornamenti) from a persona.
+    """
+    from bson import ObjectId
+    result = DBI.db['persone'].update_one(
+        {'_id': ObjectId(persona_id)},
+        {'$unset': {f'bisogni.{bisogno_id}': ''}}
+    )
+    return {
+        'success': result.modified_count > 0,
+        'modified_count': result.modified_count
+    }
