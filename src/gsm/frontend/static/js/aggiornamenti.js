@@ -5,26 +5,45 @@ const GridAggiornamenti = (() => {
 
     function init() {
         console.log('Inizializzazione griglia aggiornamenti');
-        fetchData();
+        fetchData('tutti_aggiornamenti');
+
+        document.querySelectorAll('#aggiornamenti-tabs .nav-link').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#aggiornamenti-tabs .nav-link').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                fetchData(btn.dataset.query);
+            });
+        });
     }
 
-    function fetchData() {
+    function fetchData(queryName) {
+        const gridDiv = document.querySelector('#grid-aggiornamenti');
+        gridDiv.style.visibility = 'hidden';
+
         fetch('/q', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                query: 'tutti_aggiornamenti'
+                query: queryName
             })
         })
             .then(response => response.json())
             .then(data => {
                 console.log('Dati aggiornamenti ricevuti:', data);
                 gridData = data.data;
-                createGrid();
+                if (gridApi) {
+                    gridApi.setGridOption('rowData', gridData);
+                } else {
+                    createGrid();
+                }
+                gridDiv.style.visibility = 'visible';
             })
-            .catch(error => console.error('Errore nel caricamento aggiornamenti:', error));
+            .catch(error => {
+                console.error('Errore nel caricamento aggiornamenti:', error);
+                gridDiv.style.visibility = 'visible';
+            });
     }
 
     function createGrid() {

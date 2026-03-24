@@ -610,6 +610,29 @@ def tutti_aggiornamenti():
     }
 
 @q
+def primi_accessi():
+    """
+    Returns the first (oldest) aggiornamento for each persona.
+    """
+    result = tutti_aggiornamenti()
+    data = result.get('data', [])
+    if not data:
+        return result
+
+    # Keep the oldest record per persona (data is already sorted desc)
+    oldest = {}
+    for record in data:
+        pid = record['persona_id']
+        if pid not in oldest or record['data'] < oldest[pid]['data']:
+            oldest[pid] = record
+
+    filtered = sorted(oldest.values(), key=lambda x: x['data'], reverse=True)
+    return {
+        'data': filtered,
+        'columns': result.get('columns', [])
+    }
+
+@q
 def delete_aggiornamento(persona_id, tipo, item_id, data):
     """
     Deletes an aggiornamento from a servizio or bisogno for a persona.
