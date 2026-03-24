@@ -474,6 +474,18 @@ def create_servizio(nome_servizio, descrizione_servizio):
     }
 
 @q
+def update_servizio(servizio_id, nome_servizio, descrizione_servizio):
+    """
+    Updates nome_servizio and descrizione_servizio for a given servizio.
+    """
+    from bson import ObjectId
+    result = DBI.db['servizi'].update_one(
+        {'_id': ObjectId(servizio_id)},
+        {'$set': {'nome_servizio': nome_servizio, 'descrizione_servizio': descrizione_servizio}}
+    )
+    return {'success': result.modified_count > 0}
+
+@q
 def create_persona(persona_data):
     """
     Creates a new persona document.

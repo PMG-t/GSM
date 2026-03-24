@@ -605,6 +605,28 @@ def create_servizio():
         print(f"Error creating servizio: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/edit-servizio', methods=['POST'])
+@require_db
+def edit_servizio():
+    try:
+        data = request.json
+        servizio_id = data.get('servizio_id')
+        nome_servizio = data.get('nome_servizio')
+        descrizione_servizio = data.get('descrizione_servizio')
+
+        if not all([servizio_id, nome_servizio, descrizione_servizio]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        result = Q.QUERY_NAMES_MAP['update_servizio'](
+            servizio_id=servizio_id,
+            nome_servizio=nome_servizio,
+            descrizione_servizio=descrizione_servizio
+        )
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error editing servizio: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/remove-aggiornamento', methods=['POST'])
 @require_db
 def remove_aggiornamento():
