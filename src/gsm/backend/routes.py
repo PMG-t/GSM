@@ -218,6 +218,41 @@ def report():
     return render_template('report.html')
 
 
+@app.route('/ricerca-globale')
+@require_db
+def ricerca_globale():
+    return render_template('ricerca-globale.html')
+
+
+@app.route('/api/global-search', methods=['POST'])
+@require_db
+def api_global_search():
+    try:
+        payload = request.json or {}
+        fields_by_group = payload.get('fields', {})
+        terms = payload.get('terms', [])
+
+        if not terms:
+            return jsonify({'success': False, 'error': 'Nessun termine di ricerca'}), 400
+
+        results = Q.QUERY_NAMES_MAP['global_search'](fields_by_group, terms)
+        return jsonify({'success': True, 'results': results, 'total': len(results)})
+    except Exception as e:
+        print(f"Error in global search: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/global-search-fields')
+@require_db
+def api_global_search_fields():
+    try:
+        groups = Q.QUERY_NAMES_MAP['global_search_field_groups']()
+        return jsonify({'success': True, 'groups': groups})
+    except Exception as e:
+        print(f"Error fetching global search fields: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/servizio/<servizio_id>')
 @require_db
 def servizio(servizio_id):

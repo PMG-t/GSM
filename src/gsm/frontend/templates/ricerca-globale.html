@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="/static/libs/bootstrap/bootstrap-5.3.0.css" rel="stylesheet">
+    <link href="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.css" rel="stylesheet">
+    <link href="/static/css/page.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+
+    <title>Ricerca Globale</title>
+    <style>
+        #fieldsSelect + .ts-wrapper > .ts-control {
+            max-height: 130px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include 'sidebar.html' %}
+
+    <div class="content">
+
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Ricerca Globale</h1>
+            </div>
+
+            <div class="row g-3 mb-4 align-items-end">
+
+                <div class="col-12 col-md-5">
+                    <label for="fieldsSelect" class="form-label text-muted">Campi</label>
+                    <select id="fieldsSelect" multiple placeholder="Seleziona campi..."></select>
+                </div>
+
+                <div class="col-12 col-md-5">
+                    <label for="searchInput" class="form-label text-muted">Contenuto</label>
+                    <select id="searchInput" multiple placeholder="Aggiungi termine e premi Invio..."></select>
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary flex-grow-1" id="searchBtn">Cerca</button>
+                        <button class="btn btn-outline-secondary" id="clearBtn" title="Pulisci">✕</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <p class="text-muted" id="searchStatus"></p>
+                </div>
+            </div>
+
+            <div id="searchResults"></div>
+
+        </div>
+
+    </div>
+
+    <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
+    <script src="/static/libs/tom-select/tom-select-2.4.1-bootstrap-5.js"></script>
+    <script src="/static/js/ricerca-globale.js"></script>
+
+</body>
+
+</html>

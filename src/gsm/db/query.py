@@ -763,6 +763,123 @@ def remove_bisogno_from_persona(persona_id, bisogno_id):
     }
 
 @q
+def global_search_field_groups():
+    """
+    Returns field groups for global search:
+      - top-level scalar fields of the persone collection
+      - distinct names of servizi, bisogni, monitor
+    """
+    persona_doc = DBI.db['persone'].find_one()
+    persona_fields = [k for k in persona_doc.keys() if k != '_id'] if persona_doc else []
+
+    servizi_docs = list(DBI.db['servizi'].find({}, {'descrizione_servizio': 1, 'nome_servizio': 1}))
+    servizi_names = sorted(
+        {s.get('descrizione_servizio') or s.get('nome_servizio', '') for s in servizi_docs} - {''})
+
+    bisogni_docs = list(DBI.db['bisogni'].find({}, {'nome_bisogno': 1}))
+    bisogni_names = sorted(
+        {b.get('nome_bisogno', '') for b in bisogni_docs} - {''})
+
+    monitor_docs = list(DBI.db['monitor'].find({}, {'descrizione_monitor': 1, 'nome_monitor': 1}))
+    monitor_names = sorted(
+        {m.get('descrizione_monitor') or m.get('nome_monitor', '') for m in monitor_docs} - {''})
+
+    return [
+        {'id': 'persona', 'label': 'Campi persona', 'fields': persona_fields},
+        {'id': 'servizi',  'label': 'Nomi servizi',  'fields': servizi_names},
+        {'id': 'bisogni',  'label': 'Nomi bisogni',  'fields': bisogni_names},
+        {'id': 'monitor',  'label': 'Nomi monitor',  'fields': monitor_names},
+    ]
+
+
+@q
+def global_search(fields_by_group, terms):
+    """
+    Full-text global search across persona scalar fields and nested
+    aggiornamenti notes in servizi, bisogni, monitor.
+
+    fields_by_group: dict with optional keys 'persona', 'servizi', 'bisogni', 'monitor'
+                     each mapping to a list of selected field/item names.
+    terms: list of lowercase search strings (substring match, case-insensitive).
+    """
+    terms = [str(t).strip().lower() for t in terms if str(t).strip()]
+    if not terms:
+        return []
+
+    def matches_any(value):
+        if value is None:
+            return False
+        return any(t in str(value).lower() for t in terms)
+
+    active_persona = fields_by_group.get('persona', [])
+    active_servizi = fields_by_group.get('servizi', [])
+    active_bisogni = fields_by_group.get('bisogni', [])
+    active_monitor = fields_by_group.get('monitor', [])
+    nothing_selected = not any([active_persona, active_servizi, active_bisogni, active_monitor])
+
+    NESTED_KEYS = {'servizi', 'bisogni', 'monitor', '_id'}
+    persone_all = list(DBI.db['persone'].find())
+    results = []
+
+    # ── Persona scalar fields ─────────────────────────────────────────────────
+    if active_persona or nothing_selected:
+        search_fields = (
+            [f for f in active_persona if f not in NESTED_KEYS]
+            if active_persona
+            else [k for k in (persone_all[0].keys() if persone_all else []) if k not in NESTED_KEYS]
+        )
+        for persona in persone_all:
+            for field in search_fields:
+                val = persona.get(field)
+                if matches_any(val):
+                    results.append({
+                        'tipo': 'persona',
+                        'persona_id': str(persona['_id']),
+                        'nome': persona.get('nome', ''),
+                        'cognome': persona.get('cognome', ''),
+                        'campo': field,
+                        'valore': str(val),
+                    })
+
+    # ── Helper: search nested aggiornamenti ───────────────────────────────────
+    def search_nested(group_key, collection_name, name_fields, persona_field, active_names):
+        all_docs = list(DBI.db[collection_name].find())
+        docs = (
+            [d for d in all_docs
+             if any(d.get(nf) == name for nf in name_fields for name in active_names)]
+            if active_names else all_docs
+        )
+        for doc in docs:
+            doc_id = str(doc['_id'])
+            label = next((doc.get(nf) for nf in name_fields if doc.get(nf)), doc_id)
+            for persona in persone_all:
+                for agg in persona.get(persona_field, {}).get(doc_id, []):
+                    note = agg.get('note', '') or ''
+                    if matches_any(note):
+                        results.append({
+                            'tipo': group_key,
+                            'nome_tipo': label,
+                            'persona_id': str(persona['_id']),
+                            'nome': persona.get('nome', ''),
+                            'cognome': persona.get('cognome', ''),
+                            'data': str(agg.get('data', '')),
+                            'note': note,
+                        })
+
+    if active_servizi or nothing_selected:
+        search_nested('servizi', 'servizi',
+                      ['descrizione_servizio', 'nome_servizio'], 'servizi', active_servizi)
+    if active_bisogni or nothing_selected:
+        search_nested('bisogni', 'bisogni',
+                      ['nome_bisogno'], 'bisogni', active_bisogni)
+    if active_monitor or nothing_selected:
+        search_nested('monitor', 'monitor',
+                      ['descrizione_monitor', 'nome_monitor'], 'monitor', active_monitor)
+
+    return results
+
+
+@q
 def create_bisogno(nome_bisogno, categoria_bisogno, descrizione_bisogno):
     """
     Creates a new bisogno in the bisogni collection.

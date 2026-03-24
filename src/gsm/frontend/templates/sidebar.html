@@ -61,14 +61,17 @@
     <div class="section mb-3">
         <h6 class="section-name text-muted">Strumenti</h6>
         
-         <nav class="nav flex-column">
+        <nav class="nav flex-column">
+            <a class="nav-link {% if request.endpoint == 'ricerca_globale' %}active{% endif %}" href="{{ url_for('ricerca_globale') }}">Ricerca Globale</a>
+        </nav>
+
+        <nav class="nav flex-column">
             <a class="nav-link {% if request.endpoint == 'report' %}active{% endif %}" href="{{ url_for('report') }}">Report</a>
         </nav>
 
-         <nav class="nav flex-column">
+        <nav class="nav flex-column">
             <a class="nav-link {% if request.endpoint == 'import_page' %}active{% endif %}" href="{{ url_for('import_page') }}">Importa Dati</a>
         </nav>
-
     </div>
     
 </div>
