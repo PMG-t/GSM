@@ -11,6 +11,19 @@ class XLSXLoader:
         self.df_guardaroba = None
         self.df_persone = None
     
+    @staticmethod
+    def _normalize_text_fields(df):
+        for col in df.select_dtypes(include='object').columns:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.strip()
+                .str.upper()
+                .str.replace(r' {2,}', ' ', regex=True)
+            )
+            df[col] = df[col].where(df[col] != 'NAN', other=pd.NA)
+        return df
+
     def _xlsx2tsv(self, xlsx, sheet, tsv):
         df = pd.read_excel(xlsx, sheet_name=sheet)
         df.to_csv(tsv, sep='\t', index=False)
@@ -75,7 +88,7 @@ class XLSXLoader:
         'tipo_di_lavoro', 'in_carico_presso', 'istruzione', 'residenza',
         'sussidio']
         
-        return df
+        return self._normalize_text_fields(df)
 
     def _import_sportello(self, xlsx):
         
@@ -155,7 +168,7 @@ class XLSXLoader:
         'orientamento_lavoro', 'accoglienza_notturna',
         'servizi_mediazione_linguistico_culturale', 'corsi_lingua_italiana']
 
-        return df
+        return self._normalize_text_fields(df)
 
     def _merge_persone(self, df_sportello, df_guardaroba):
         
