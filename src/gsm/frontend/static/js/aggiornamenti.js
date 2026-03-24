@@ -226,7 +226,7 @@ const GridAggiornamenti = (() => {
     }
 
     function deleteAggiornamento(personaId, tipo, itemId, dataISO, cognome, nome) {
-        if (!confirm(`Sei sicuro di voler eliminare questo aggiornamento per ${cognome} ${nome}?`)) {
+        if (!confirm(`Sei sicurə di voler eliminare questo aggiornamento per ${cognome} ${nome}?`)) {
             return;
         }
 

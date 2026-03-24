@@ -282,7 +282,71 @@ const ServizioDetail = (() => {
         });
     }
 
-    return { init, showEditModal };
+    function showDeleteModal() {
+        const nome = servizioData.descrizione_servizio || servizioData.nome_servizio;
+        const numPersone = servizioData.num_persone || 0;
+
+        const modalHtml = `
+            <div class="modal fade" id="deleteServizioModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-danger">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">Elimina servizio</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Stai per eliminare il servizio <strong>${nome}</strong>.</p>
+                            ${numPersone > 0
+                                ? `<p class="text-danger">&#9888; Questo servizio è associato a <strong>${numPersone} ${numPersone === 1 ? 'persona' : 'persone'}</strong>. Tutti i dati del servizio (aggiornamenti inclusi) verranno rimossi anche dai loro profili.</p>`
+                                : ''}
+                            <p class="fw-bold">L'operazione è irreversibile. Sei sicurə?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                            <button type="button" class="btn btn-danger" id="btnConfermaElimina">Elimina definitivamente</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        let existing = document.getElementById('deleteServizioModal');
+        if (existing) existing.remove();
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('deleteServizioModal'));
+        modal.show();
+
+        document.getElementById('btnConfermaElimina').addEventListener('click', () => {
+            const btn = document.getElementById('btnConfermaElimina');
+            btn.disabled = true;
+
+            fetch('/delete-servizio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ servizio_id: servizioData._id })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        modal.hide();
+                        window.location.href = '/servizi';
+                    } else {
+                        alert('Errore: ' + (data.error || 'errore sconosciuto'));
+                        btn.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Errore nella comunicazione con il server.');
+                    btn.disabled = false;
+                });
+        });
+
+        document.getElementById('deleteServizioModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    return { init, showEditModal, showDeleteModal };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

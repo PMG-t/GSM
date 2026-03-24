@@ -486,6 +486,29 @@ def update_servizio(servizio_id, nome_servizio, descrizione_servizio):
     return {'success': result.modified_count > 0}
 
 @q
+def delete_servizio(servizio_id):
+    """
+    Deletes a servizio and removes it from all persone that reference it.
+    """
+    from bson import ObjectId
+    oid = ObjectId(servizio_id)
+    sid_str = str(servizio_id)
+
+    # Remove the key from every persona that has it
+    persone = list(DBI.db['persone'].find({f'servizi.{sid_str}': {'$exists': True}}))
+    for persona in persone:
+        DBI.db['persone'].update_one(
+            {'_id': persona['_id']},
+            {'$unset': {f'servizi.{sid_str}': ''}}
+        )
+
+    result = DBI.db['servizi'].delete_one({'_id': oid})
+    return {
+        'success': result.deleted_count > 0,
+        'persone_aggiornate': len(persone)
+    }
+
+@q
 def create_persona(persona_data):
     """
     Creates a new persona document.

@@ -465,7 +465,7 @@ const PersonaDetail = (() => {
     }
 
     function deleteAggiornamento(tipo, itemId, dataISO) {
-        if (!confirm('Sei sicuro di voler eliminare questo aggiornamento?')) {
+        if (!confirm('Sei sicurə di voler eliminare questo aggiornamento?')) {
             return;
         }
 
@@ -1537,7 +1537,7 @@ const PersonaDetail = (() => {
 
     function deletePersona() {
         const nome = `${personaData.cognome} ${personaData.nome}`;
-        if (!confirm(`Sei sicuro di voler eliminare definitivamente la scheda di "${nome}"?\nQuesta operazione non può essere annullata.`)) {
+        if (!confirm(`Sei sicurə di voler eliminare definitivamente la scheda di "${nome}"?\nQuesta operazione non può essere annullata.`)) {
             return;
         }
 
@@ -1583,7 +1583,7 @@ const PersonaDetail = (() => {
     }
 
     function removeServizio(servizioId, servizioNome) {
-        if (!confirm(`Sei sicuro di voler disiscrivere ${personaData.cognome} ${personaData.nome} dal servizio "${servizioNome}"?\nVerranno eliminati anche tutti gli aggiornamenti associati.`)) {
+        if (!confirm(`Sei sicurə di voler disiscrivere ${personaData.cognome} ${personaData.nome} dal servizio "${servizioNome}"?\nVerranno eliminati anche tutti gli aggiornamenti associati.`)) {
             return;
         }
 
@@ -1642,7 +1642,7 @@ const PersonaDetail = (() => {
     }
 
     function removeBisogno(bisognoId, bisognoNome) {
-        if (!confirm(`Sei sicuro di voler disiscrivere ${personaData.cognome} ${personaData.nome} dal bisogno "${bisognoNome}"?\nVerranno eliminati anche tutti gli aggiornamenti associati.`)) {
+        if (!confirm(`Sei sicurə di voler disiscrivere ${personaData.cognome} ${personaData.nome} dal bisogno "${bisognoNome}"?\nVerranno eliminati anche tutti gli aggiornamenti associati.`)) {
             return;
         }
 

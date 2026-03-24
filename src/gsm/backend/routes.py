@@ -627,6 +627,20 @@ def edit_servizio():
         print(f"Error editing servizio: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/delete-servizio', methods=['POST'])
+@require_db
+def delete_servizio():
+    try:
+        data = request.json
+        servizio_id = data.get('servizio_id')
+        if not servizio_id:
+            return jsonify({'error': 'Missing servizio_id'}), 400
+        result = Q.QUERY_NAMES_MAP['delete_servizio'](servizio_id=servizio_id)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error deleting servizio: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/remove-aggiornamento', methods=['POST'])
 @require_db
 def remove_aggiornamento():
