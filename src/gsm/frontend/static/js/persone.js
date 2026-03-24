@@ -50,6 +50,12 @@ const GridPersone = (() => {
     }
 
     function fecthData() {
+        let fetchedCount = 0;
+        function onFetchDone() {
+            fetchedCount++;
+            if (fetchedCount === 3) createGrid();
+        }
+
         fetch('/q', 
             {
                 method: 'POST',
@@ -66,7 +72,7 @@ const GridPersone = (() => {
                 console.log('Dati ricevuti:', data);
                 records_persone = data.data;
                 fields_persone = data.columns;
-                createGrid();
+                onFetchDone();
             })
             .catch(error => console.error('Errore nel caricamento dei dati:', error));
 
@@ -117,6 +123,7 @@ const GridPersone = (() => {
                     map[servizio._id] = servizio.descrizione_servizio || servizio.nome_servizio;
                     return map;
                 }, {});
+                onFetchDone();
             }
         )
 
@@ -140,6 +147,7 @@ const GridPersone = (() => {
                     map[bisogno._id] = bisogno.descrizione_bisogno || bisogno.nome_bisogno;
                     return map;
                 }, {});
+                onFetchDone();
             })
             .catch(error => console.error('Errore nel caricamento bisogni:', error));
     }
