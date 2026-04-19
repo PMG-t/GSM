@@ -1,6 +1,7 @@
 import json
 import uuid
 from functools import wraps
+from bson import ObjectId
 from flask import render_template, request, jsonify, current_app as app, session, redirect, url_for
 from markupsafe import escape
 from ..db import Q
@@ -923,6 +924,193 @@ def import_excel():
         
     except Exception as e:
         print(f"Error importing Excel: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/preview-jsonl', methods=['POST'])
+def preview_jsonl():
+    """
+    Carica i file JSONL (persone, servizi, bisogni, monitor), 
+    conta i record e ritorna un riepilogo.
+    Accessibile anche senza DB per creare nuovi database.
+    """
+    import os
+    import tempfile
+    from werkzeug.utils import secure_filename
+    
+    try:
+        # Verifica che i file siano stati caricati
+        required_files = ['persone_file', 'servizi_file', 'bisogni_file', 'monitor_file']
+        for field in required_files:
+            if field not in request.files:
+                return jsonify({'success': False, 'error': f'File mancante: {field}'}), 400
+        
+        persone_file = request.files['persone_file']
+        servizi_file = request.files['servizi_file']
+        bisogni_file = request.files['bisogni_file']
+        monitor_file = request.files['monitor_file']
+        db_name = request.form.get('db_name', 'imported')
+        
+        # Verifica che i nomi non siano vuoti
+        for f in [persone_file, servizi_file, bisogni_file, monitor_file]:
+            if f.filename == '':
+                return jsonify({'success': False, 'error': 'Nessun file selezionato'}), 400
+        
+        # Crea directory temporanea
+        temp_dir = tempfile.mkdtemp()
+        
+        # Salva i file temporaneamente
+        persone_path = os.path.join(temp_dir, secure_filename(persone_file.filename))
+        servizi_path = os.path.join(temp_dir, secure_filename(servizi_file.filename))
+        bisogni_path = os.path.join(temp_dir, secure_filename(bisogni_file.filename))
+        monitor_path = os.path.join(temp_dir, secure_filename(monitor_file.filename))
+        
+        persone_file.save(persone_path)
+        servizi_file.save(servizi_path)
+        bisogni_file.save(bisogni_path)
+        monitor_file.save(monitor_path)
+        
+        # Conta i record di ogni file JSONL
+        def count_jsonl_records(filepath):
+            count = 0
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            count += 1
+            except Exception as e:
+                print(f"Error counting records in {filepath}: {e}")
+                count = 0
+            return count
+        
+        persone_count = count_jsonl_records(persone_path)
+        servizi_count = count_jsonl_records(servizi_path)
+        bisogni_count = count_jsonl_records(bisogni_path)
+        monitor_count = count_jsonl_records(monitor_path)
+        
+        # Genera session ID per tracciare i file temporanei
+        session_id = str(uuid.uuid4())
+        
+        # Salva i percorsi dei file e il db_name in sessione
+        session[session_id] = {
+            'persone_path': persone_path,
+            'servizi_path': servizi_path,
+            'bisogni_path': bisogni_path,
+            'monitor_path': monitor_path,
+            'db_name': db_name,
+            'temp_dir': temp_dir
+        }
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'persone_count': persone_count,
+            'servizi_count': servizi_count,
+            'bisogni_count': bisogni_count,
+            'monitor_count': monitor_count,
+            'db_name': db_name
+        })
+        
+    except Exception as e:
+        print(f"Error previewing JSONL: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/confirm-import-jsonl', methods=['POST'])
+def confirm_import_jsonl():
+    """
+    Conferma l'importazione da JSON e scrive i dati nel database.
+    Crea un nuovo database.
+    """
+    import os
+    import json
+    
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        
+        if not session_id or session_id not in session:
+            return jsonify({'success': False, 'error': 'Sessione non valida o scaduta'}), 400
+        
+        # Recupera i dati dalla sessione
+        session_data = session[session_id]
+        persone_path = session_data['persone_path']
+        servizi_path = session_data['servizi_path']
+        bisogni_path = session_data['bisogni_path']
+        monitor_path = session_data['monitor_path']
+        db_name = session_data['db_name']
+        temp_dir = session_data['temp_dir']
+        
+        # Imposta il database attivo (lo creerà se non esiste)
+        DBI.set_db(db_name)
+        db = DBI.db
+        
+        # Funzione per leggere e importare un JSONL
+        def import_jsonl_collection(filepath, collection_name):
+            count = 0
+            try:
+                collection = db[collection_name]
+                documents = []
+                
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            try:
+                                doc = json.loads(line)
+                                if '_id' in doc:
+                                    doc['_id'] = ObjectId(doc['_id'])   # Convert _id to ObjectId if present
+                                documents.append(doc)
+                                count += 1
+                            except json.JSONDecodeError as je:
+                                print(f"Warning: skipping invalid JSON line in {collection_name}: {je}")
+                                continue
+                
+                if documents:
+                    result = collection.insert_many(documents)
+                    print(f"Imported {len(result.inserted_ids)} documents to {collection_name}")
+                
+            except Exception as e:
+                print(f"Error importing {collection_name}: {e}")
+                count = 0
+            
+            return count
+        
+        # Importa le 4 collections
+        persone_imported = import_jsonl_collection(persone_path, 'persone')
+        servizi_imported = import_jsonl_collection(servizi_path, 'servizi')
+        bisogni_imported = import_jsonl_collection(bisogni_path, 'bisogni')
+        monitor_imported = import_jsonl_collection(monitor_path, 'monitor')
+        
+        # Pulisci i file temporanei
+        try:
+            os.remove(persone_path)
+            os.remove(servizi_path)
+            os.remove(bisogni_path)
+            os.remove(monitor_path)
+            os.rmdir(temp_dir)
+        except Exception as cleanup_error:
+            print(f"Warning: cleanup error: {cleanup_error}")
+        
+        # Rimuovi dalla sessione
+        session.pop(session_id, None)
+        
+        return jsonify({
+            'success': True,
+            'db_name': db_name,
+            'num_persone': persone_imported,
+            'num_servizi': servizi_imported,
+            'num_bisogni': bisogni_imported,
+            'num_monitor': monitor_imported
+        })
+        
+    except Exception as e:
+        print(f"Error confirming JSON import: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500

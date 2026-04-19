@@ -48,76 +48,208 @@
 
                 <!-- SEZIONE IMPORTA -->
                 <div class="tab-pane fade show active" id="import-section" role="tabpanel">
-                    <div class="alert alert-warning" role="alert">
-                        <strong>⚠️ Attenzione:</strong> Questa operazione sovrascriverà i dati esistenti nel database. Assicurati di avere un backup prima di procedere.
-                    </div>
+                    
+                    <!-- Sotto-tabs: EXCEL vs JSON -->
+                    <ul class="nav nav-underline mb-4" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="sub-tab-excel" data-bs-toggle="tab" data-bs-target="#import-excel" type="button" role="tab">
+                                📊 da EXCEL
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sub-tab-json" data-bs-toggle="tab" data-bs-target="#import-json" type="button" role="tab">
+                                📋 da JSON Collections
+                            </button>
+                        </li>
+                    </ul>
 
-                    <div class="card mt-4">
-                        <div class="card-body">
-                            <h5 class="card-title mb-4">Carica File Excel</h5>
-                            
-                            <form id="importForm">
-                                <div class="mb-3">
-                                    <label for="sportelloFile" class="form-label">File Sportello HR</label>
-                                    <input type="file" class="form-control" id="sportelloFile" accept=".xlsx,.xls" required>
-                                    <small class="form-text text-muted">Seleziona il file Excel degli accessi Sportello HR</small>
-                                </div>
+                    <!-- Sotto-tab Content -->
+                    <div class="tab-content">
 
-                                <div class="mb-3">
-                                    <label for="guardarobaFile" class="form-label">File Guardaroba</label>
-                                    <input type="file" class="form-control" id="guardarobaFile" accept=".xlsx,.xls" required>
-                                    <small class="form-text text-muted">Seleziona il file Excel degli accessi Guardaroba</small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="dbName" class="form-label">Nome Database</label>
-                                    <input type="text" class="form-control" id="dbName" value="gs" required>
-                                    <small class="form-text text-muted">Nome del database dove importare i dati</small>
-                                </div>
-
-                                <button type="submit" class="btn btn-primary" id="submitBtn">
-                                    <span id="btnText">Carica e Mostra Anteprima</span>
-                                    <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
-                                </button>
-                            </form>
-
-                            <div id="progressSection" class="mt-4 d-none">
-                                <h6>Progresso</h6>
-                                <div class="progress" style="height: 25px;">
-                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
-                                </div>
-                                <div id="progressMessage" class="mt-2 text-muted"></div>
+                        <!-- SOTTOSEZIONE: IMPORTA DA EXCEL -->
+                        <div class="tab-pane fade show active" id="import-excel" role="tabpanel">
+                            <div class="alert alert-warning" role="alert">
+                                <strong>⚠️ Attenzione:</strong> Questa operazione sovrascriverà i dati esistenti nel database. Assicurati di avere un backup prima di procedere.
                             </div>
 
-                            <div id="resultSection" class="mt-4 d-none">
-                                <!-- Risultati dell'importazione verranno mostrati qui -->
+                            <div class="card mt-4">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-4">Carica File Excel</h5>
+                                    
+                                    <form id="importForm">
+                                        <div class="mb-3">
+                                            <label for="sportelloFile" class="form-label">File Sportello HR</label>
+                                            <input type="file" class="form-control" id="sportelloFile" accept=".xlsx,.xls" required>
+                                            <small class="form-text text-muted">Seleziona il file Excel degli accessi Sportello HR</small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="guardarobaFile" class="form-label">File Guardaroba</label>
+                                            <input type="file" class="form-control" id="guardarobaFile" accept=".xlsx,.xls" required>
+                                            <small class="form-text text-muted">Seleziona il file Excel degli accessi Guardaroba</small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="dbName" class="form-label">Nome Database</label>
+                                            <input type="text" class="form-control" id="dbName" value="gs" required>
+                                            <small class="form-text text-muted">Nome del database dove importare i dati</small>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                                            <span id="btnText">Carica e Mostra Anteprima</span>
+                                            <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                                        </button>
+                                    </form>
+
+                                    <div id="progressSection" class="mt-4 d-none">
+                                        <h6>Progresso</h6>
+                                        <div class="progress" style="height: 25px;">
+                                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                                        </div>
+                                        <div id="progressMessage" class="mt-2 text-muted"></div>
+                                    </div>
+
+                                    <div id="resultSection" class="mt-4 d-none">
+                                        <!-- Risultati dell'importazione verranno mostrati qui -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sezione Preview -->
+                            <div class="card mt-4 d-none" id="previewSection">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">Anteprima Dati Persone</h5>
+                                    <div class="alert alert-info mb-3">
+                                        <strong>📊 Anteprima:</strong> Vengono mostrate le prime 200 righe. Controlla i dati prima di confermare l'importazione.
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <p class="mb-2"><strong>Totale persone da importare:</strong> <span id="totalPersone" class="badge bg-primary">0</span></p>
+                                        <p class="mb-2"><strong>Righe visualizzate:</strong> <span id="previewRows" class="badge bg-secondary">0</span></p>
+                                    </div>
+
+                                    <div id="preview-grid" class="ag-theme-alpine mb-3" style="height: 500px; width: 100%;"></div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-success" id="confirmImportBtn">
+                                            <span id="confirmBtnText">✓ Conferma Importazione</span>
+                                            <span id="confirmBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" id="cancelImportBtn">✕ Annulla</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Sezione Preview -->
-                    <div class="card mt-4 d-none" id="previewSection">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">Anteprima Dati Persone</h5>
-                            <div class="alert alert-info mb-3">
-                                <strong>📊 Anteprima:</strong> Vengono mostrate le prime 200 righe. Controlla i dati prima di confermare l'importazione.
-                            </div>
-                            
-                            <div class="mb-3">
-                                <p class="mb-2"><strong>Totale persone da importare:</strong> <span id="totalPersone" class="badge bg-primary">0</span></p>
-                                <p class="mb-2"><strong>Righe visualizzate:</strong> <span id="previewRows" class="badge bg-secondary">0</span></p>
+                        <!-- SOTTOSEZIONE: IMPORTA DA JSON COLLECTIONS -->
+                        <div class="tab-pane fade" id="import-json" role="tabpanel">
+                            <div class="alert alert-info" role="alert">
+                                <strong>ℹ️ Importazione da JSON:</strong> Carica i file JSONL delle 4 collections (persone, servizi, bisogni, monitor) per creare un nuovo database.
                             </div>
 
-                            <div id="preview-grid" class="ag-theme-alpine mb-3" style="height: 500px; width: 100%;"></div>
+                            <div class="card mt-4">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-4">Carica Collection JSONL</h5>
+                                    
+                                    <form id="importJsonForm">
+                                        <div class="mb-3">
+                                            <label for="jsonPersoneFile" class="form-label">File Persone (persone.jsonl)</label>
+                                            <input type="file" class="form-control" id="jsonPersoneFile" accept=".jsonl,.json" required>
+                                            <small class="form-text text-muted">File JSONL con i record delle persone</small>
+                                        </div>
 
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-success" id="confirmImportBtn">
-                                    <span id="confirmBtnText">✓ Conferma Importazione</span>
-                                    <span id="confirmBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="cancelImportBtn">✕ Annulla</button>
+                                        <div class="mb-3">
+                                            <label for="jsonServiziFile" class="form-label">File Servizi (servizi.jsonl)</label>
+                                            <input type="file" class="form-control" id="jsonServiziFile" accept=".jsonl,.json" required>
+                                            <small class="form-text text-muted">File JSONL con i record dei servizi</small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="jsonBisogniFile" class="form-label">File Bisogni (bisogni.jsonl)</label>
+                                            <input type="file" class="form-control" id="jsonBisogniFile" accept=".jsonl,.json" required>
+                                            <small class="form-text text-muted">File JSONL con i record dei bisogni</small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="jsonMonitorFile" class="form-label">File Monitor (monitor.jsonl)</label>
+                                            <input type="file" class="form-control" id="jsonMonitorFile" accept=".jsonl,.json" required>
+                                            <small class="form-text text-muted">File JSONL con i record del monitor</small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="jsonDbName" class="form-label">Nome Nuovo Database</label>
+                                            <input type="text" class="form-control" id="jsonDbName" placeholder="es. importato_2026" required>
+                                            <small class="form-text text-muted">Nome del nuovo database dove importare i dati</small>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary" id="submitJsonBtn">
+                                            <span id="jsonBtnText">Carica e Mostra Anteprima</span>
+                                            <span id="jsonBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                                        </button>
+                                    </form>
+
+                                    <div id="jsonProgressSection" class="mt-4 d-none">
+                                        <h6>Progresso</h6>
+                                        <div class="progress" style="height: 25px;">
+                                            <div id="jsonProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                                        </div>
+                                        <div id="jsonProgressMessage" class="mt-2 text-muted"></div>
+                                    </div>
+
+                                    <div id="jsonResultSection" class="mt-4 d-none">
+                                        <!-- Risultati dell'importazione verranno mostrati qui -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sezione Preview JSON -->
+                            <div class="card mt-4 d-none" id="jsonPreviewSection">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">Anteprima Dati da Importare</h5>
+                                    <div class="alert alert-info mb-3">
+                                        <strong>📊 Anteprima:</strong> Riepilogo dei dati che verranno importati. Controlla i conteggi prima di confermare.
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <div class="text-center">
+                                                    <span class="display-5 text-primary" id="jsonTotalPersone">0</span>
+                                                    <div class="text-muted">Persone</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center">
+                                                    <span class="display-5 text-info" id="jsonTotalServizi">0</span>
+                                                    <div class="text-muted">Servizi</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center">
+                                                    <span class="display-5 text-warning" id="jsonTotalBisogni">0</span>
+                                                    <div class="text-muted">Bisogni</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center">
+                                                    <span class="display-5 text-secondary" id="jsonTotalMonitor">0</span>
+                                                    <div class="text-muted">Monitor</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-success" id="confirmJsonImportBtn">
+                                            <span id="confirmJsonBtnText">✓ Conferma Importazione</span>
+                                            <span id="confirmJsonBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" id="cancelJsonImportBtn">✕ Annulla</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -236,6 +368,7 @@
     <script src="/static/libs/ag-grid/ag-grid-community.js"></script>
     <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
     <script src="/static/js/import.js"></script>
+    <script src="/static/js/import-json.js"></script>
     <script src="/static/js/export.js"></script>
 </body>
 
