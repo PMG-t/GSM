@@ -64,9 +64,23 @@ def servizi(filters=dict(), projection=dict()):
 @q
 def bisogni(filters=dict(), projection=dict()):
     """
-    Returns all documents from the 'bisogni' collection.
+    Returns all documents from the 'bisogni' collection, with num_persone count.
     """
     bisogni = list(DBI.db['bisogni'].find(filters, projection))
+
+    # Conta quante persone hanno ogni bisogno
+    persone = list(DBI.db['persone'].find())
+    bisogni_count = {}
+    for persona in persone:
+        if 'bisogni' in persona:
+            for bisogno_id, aggiornamenti in persona['bisogni'].items():
+                if aggiornamenti:  # almeno un aggiornamento
+                    bisogni_count[bisogno_id] = bisogni_count.get(bisogno_id, 0) + 1
+
+    for bisogno in bisogni:
+        bisogno_id = str(bisogno['_id'])
+        bisogno['num_persone'] = bisogni_count.get(bisogno_id, 0)
+
     df = pd.DataFrame(bisogni)
     df = df.where(pd.notnull(df), '')
     result = {
@@ -121,6 +135,26 @@ def servizio(servizio_id):
     return servizio
 
 @q
+def bisogno(bisogno_id):
+    """
+    Returns a single document from the 'bisogni' collection by ID.
+    """
+    from bson import ObjectId
+    bisogno = DBI.db['bisogni'].find_one({'_id': ObjectId(bisogno_id)})
+    if bisogno:
+        bisogno['_id'] = str(bisogno['_id'])
+        
+        # Conta quante persone hanno questo bisogni
+        persone = list(DBI.db['persone'].find())
+        count = 0
+        for persona in persone:
+            if 'bisogni' in persona and bisogno_id in persona['bisogni']:
+                count += 1
+        bisogno['num_persone'] = count
+    
+    return bisogno
+
+@q
 def persone_con_servizio(servizio_id):
     """
     Returns all persone that have a specific servizio.
@@ -135,6 +169,29 @@ def persone_con_servizio(servizio_id):
             persona_data['_id'] = str(persona_data['_id'])
             # Aggiungi il conteggio degli aggiornamenti
             persona_data['num_aggiornamenti'] = len(persona['servizi'][servizio_id])
+            persone_con.append(persona_data)
+            
+    df_persone = pd.DataFrame(persone_con)
+    df_persone = df_persone.where(pd.notnull(df_persone), '')
+    persone_con = df_persone.to_dict(orient='records')
+    
+    return persone_con
+
+@q
+def persone_con_bisogno(bisogno_id):
+    """
+    Returns all persone that have a specific bisogno.
+    """
+    persone = list(DBI.db['persone'].find())
+    persone_con = []
+    
+    for persona in persone:
+        if 'bisogni' in persona and bisogno_id in persona['bisogni']:
+            # Copia tutti i campi della persona tranne bisogni e bisogni
+            persona_data = {k: v for k, v in persona.items() if k not in ['bisogni', 'bisogni']}
+            persona_data['_id'] = str(persona_data['_id'])
+            # Aggiungi il conteggio degli aggiornamenti
+            persona_data['num_aggiornamenti'] = len(persona['bisogni'][bisogno_id])
             persone_con.append(persona_data)
             
     df_persone = pd.DataFrame(persone_con)
@@ -172,78 +229,33 @@ def aggiornamenti_servizio(servizio_id):
     return aggiornamenti_list
 
 @q
-def persone_con_bisogno_categoria(categoria):
+def aggiornamenti_bisogno(bisogno_id):
     """
-    Returns all persone that have at least one bisogno in a specific categoria.
+    Returns all aggiornamenti for a specific bisogno from all persone.
     """
-    # Ottieni tutti i bisogni della categoria
-    bisogni = list(DBI.db['bisogni'].find({'categoria_bisogno': categoria}))
-    bisogni_ids = [str(b['_id']) for b in bisogni]
-    
-    persone = list(DBI.db['persone'].find())
-    persone_con = []
-    
-    for persona in persone:
-        if 'bisogni' in persona:
-            # Conta gli aggiornamenti totali per questa categoria
-            num_aggiornamenti = 0
-            has_bisogno_in_categoria = False
-            
-            for bisogno_id in bisogni_ids:
-                if bisogno_id in persona['bisogni'] and persona['bisogni'][bisogno_id]:
-                    has_bisogno_in_categoria = True
-                    num_aggiornamenti += len(persona['bisogni'][bisogno_id])
-            
-            if has_bisogno_in_categoria:
-                # Copia tutti i campi della persona tranne bisogni e servizi
-                persona_data = {k: v for k, v in persona.items() if k not in ['bisogni', 'servizi', 'monitor']}
-                persona_data['_id'] = str(persona_data['_id'])
-                persona_data['num_aggiornamenti'] = num_aggiornamenti
-                persone_con.append(persona_data)
-    
-    df_persone = pd.DataFrame(persone_con)
-    df_persone = df_persone.where(pd.notnull(df_persone), '')
-    persone_con = df_persone.to_dict(orient='records')
-    
-    return persone_con
-
-@q
-def aggiornamenti_categoria_bisogno(categoria):
-    """
-    Returns all aggiornamenti for all bisogni in a specific categoria from all persone.
-    """
-    # Ottieni tutti i bisogni della categoria
-    bisogni = list(DBI.db['bisogni'].find({'categoria_bisogno': categoria}))
-    bisogni_map = {str(b['_id']): b.get('nome_bisogno', 'N/A') for b in bisogni}
-    bisogni_ids = list(bisogni_map.keys())
-    
     persone = list(DBI.db['persone'].find())
     aggiornamenti_list = []
     
     for persona in persone:
-        if 'bisogni' in persona:
+        if 'bisogni' in persona and bisogno_id in persona['bisogni']:
             persona_id = str(persona['_id'])
             cognome = persona.get('cognome', '')
             nome = persona.get('nome', '')
             
-            for bisogno_id in bisogni_ids:
-                if bisogno_id in persona['bisogni'] and persona['bisogni'][bisogno_id]:
-                    nome_bisogno = bisogni_map.get(bisogno_id, 'N/A')
-                    
-                    for agg in persona['bisogni'][bisogno_id]:
-                        aggiornamenti_list.append({
-                            'persona_id': persona_id,
-                            'cognome': cognome,
-                            'nome': nome,
-                            'nome_bisogno': nome_bisogno,
-                            'data': agg['data'],
-                            'note': agg.get('note', '')
-                        })
+            for agg in persona['bisogni'][bisogno_id]:
+                aggiornamenti_list.append({
+                    'persona_id': persona_id,
+                    'cognome': cognome,
+                    'nome': nome,
+                    'data': agg['data'],
+                    'note': agg.get('note', '')
+                })
     
     # Ordina dal più recente al più vecchio
     aggiornamenti_list.sort(key=lambda x: x['data'], reverse=True)
     
     return aggiornamenti_list
+
 
 @q
 def add_aggiornamento(persona_id, tipo, item_id, note, data):
@@ -474,6 +486,21 @@ def create_servizio(nome_servizio, descrizione_servizio):
     }
 
 @q
+def create_bisogno(nome_bisogno, descrizione_bisogno):
+    """
+    Creates a new bisogno in the bisogni collection.
+    """
+    new_bisogno = {
+        'nome_bisogno': nome_bisogno,
+        'descrizione_bisogno': descrizione_bisogno
+    }
+    result = DBI.db['bisogni'].insert_one(new_bisogno)
+    return {
+        'success': result.inserted_id is not None,
+        'bisogno_id': str(result.inserted_id) if result.inserted_id else None
+    }
+
+@q
 def update_servizio(servizio_id, nome_servizio, descrizione_servizio):
     """
     Updates nome_servizio and descrizione_servizio for a given servizio.
@@ -482,6 +509,18 @@ def update_servizio(servizio_id, nome_servizio, descrizione_servizio):
     result = DBI.db['servizi'].update_one(
         {'_id': ObjectId(servizio_id)},
         {'$set': {'nome_servizio': nome_servizio, 'descrizione_servizio': descrizione_servizio}}
+    )
+    return {'success': result.modified_count > 0}
+
+@q
+def update_bisogno(bisogno_id, nome_bisogno, descrizione_bisogno):
+    """
+    Updates nome_bisogno and descrizione_bisogno for a given bisogno.
+    """
+    from bson import ObjectId
+    result = DBI.db['bisogni'].update_one(
+        {'_id': ObjectId(bisogno_id)},
+        {'$set': {'nome_bisogno': nome_bisogno, 'descrizione_bisogno': descrizione_bisogno}}
     )
     return {'success': result.modified_count > 0}
 
@@ -503,6 +542,29 @@ def delete_servizio(servizio_id):
         )
 
     result = DBI.db['servizi'].delete_one({'_id': oid})
+    return {
+        'success': result.deleted_count > 0,
+        'persone_aggiornate': len(persone)
+    }
+
+@q
+def delete_bisogno(bisogno_id):
+    """
+    Deletes a bisogno and removes it from all persone that reference it.
+    """
+    from bson import ObjectId
+    oid = ObjectId(bisogno_id)
+    sid_str = str(bisogno_id)
+
+    # Remove the key from every persona that has it
+    persone = list(DBI.db['persone'].find({f'bisogni.{sid_str}': {'$exists': True}}))
+    for persona in persone:
+        DBI.db['persone'].update_one(
+            {'_id': persona['_id']},
+            {'$unset': {f'bisogni.{sid_str}': ''}}
+        )
+
+    result = DBI.db['bisogni'].delete_one({'_id': oid})
     return {
         'success': result.deleted_count > 0,
         'persone_aggiornate': len(persone)
@@ -589,7 +651,7 @@ def tutti_aggiornamenti():
     servizi_map = {str(s['_id']): s.get('descrizione_servizio') or s.get('nome_servizio') for s in servizi_list}
     
     bisogni_list = list(DBI.db['bisogni'].find())
-    bisogni_map = {str(b['_id']): b.get('descrizione_bisogno') or b.get('nome_bisogno') for b in bisogni_list}
+    bisogni_map = {str(b['_id']): b.get('nome_bisogno') or b.get('descrizione_bisogno') for b in bisogni_list}
     
     aggiornamenti_list = []
     
@@ -626,7 +688,8 @@ def tutti_aggiornamenti():
                         'tipo': 'bisogno',
                         'item_id': bisogno_id,
                         'item_nome': bisogno_nome,
-                        'data': agg['data'],
+                        # 'data': agg['data'],
+                        'data': pd.to_datetime(agg['data']).isoformat(),
                         'note': agg.get('note', '')
                     })
     
@@ -935,20 +998,3 @@ def global_search(fields_by_group, terms):
                       ['descrizione_monitor', 'nome_monitor'], 'monitor', active_monitor)
 
     return results
-
-
-@q
-def create_bisogno(nome_bisogno, categoria_bisogno, descrizione_bisogno):
-    """
-    Creates a new bisogno in the bisogni collection.
-    """
-    new_bisogno = {
-        'nome_bisogno': nome_bisogno,
-        'categoria_bisogno': categoria_bisogno,
-        'descrizione_bisogno': descrizione_bisogno
-    }
-    result = DBI.db['bisogni'].insert_one(new_bisogno)
-    return {
-        'success': result.inserted_id is not None,
-        'bisogno_id': str(result.inserted_id) if result.inserted_id else None
-    }

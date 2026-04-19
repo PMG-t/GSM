@@ -1,166 +1,76 @@
 const Bisogni = (() => {
 
     let bisogniData = [];
-    let personeData = [];
-    let currentView = 'list'; // 'list' or 'grid'
 
     function init() {
         console.log('Inizializzazione pagina bisogni');
         fetchData();
         setupExportButtons();
-        setupViewToggle();
         setupGlobalSearch();
     }
 
     async function fetchData() {
         try {
-            // Fetch bisogni
-            const bisogniResponse = await fetch('/q', {
+            const response = await fetch('/q', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: 'bisogni' })
             });
-            const bisogniResult = await bisogniResponse.json();
-            bisogniData = bisogniResult.data;
-
-            // Fetch persone per contare i bisogni
-            const personeResponse = await fetch('/q', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: 'persone' })
-            });
-            const personeResult = await personeResponse.json();
-            personeData = personeResult.data;
-
-            console.log('Bisogni ricevuti:', bisogniData);
-            console.log('Persone ricevute:', personeData);
-
-            renderBisogni();
+            const result = await response.json();
+            bisogniData = sortBisogni(result.data);
+            renderBisogni(bisogniData);
         } catch (error) {
             console.error('Errore nel caricamento dati:', error);
         }
     }
 
-    function countPersonePerCategoria(categoria) {
-        // Conta quante persone hanno almeno un bisogno di questa categoria
-        const bisogniInCategoria = bisogniData
-            .filter(b => b.categoria_bisogno === categoria)
-            .map(b => b._id);
-
-        const personeConBisogno = new Set();
-        personeData.forEach(persona => {
-            if (persona.bisogni) {
-                const hasBisognoInCategoria = bisogniInCategoria.some(bisognoId => 
-                    persona.bisogni[bisognoId] && persona.bisogni[bisognoId].length > 0
-                );
-                if (hasBisognoInCategoria) {
-                    personeConBisogno.add(persona._id);
-                }
-            }
+    function sortBisogni(bisogni) {
+        return bisogni.slice().sort((a, b) => {
+            const nomeA = (a.nome_bisogno || '').toLowerCase();
+            const nomeB = (b.nome_bisogno || '').toLowerCase();
+            return nomeA.localeCompare(nomeB, 'it');
         });
-
-        return personeConBisogno.size;
     }
 
-    function countPersonePerBisogno(bisognoId) {
-        // Conta quante persone hanno questo bisogno specifico
-        let count = 0;
-        personeData.forEach(persona => {
-            if (persona.bisogni && persona.bisogni[bisognoId] && persona.bisogni[bisognoId].length > 0) {
-                count++;
-            }
-        });
-        return count;
-    }
-
-    function renderBisogni() {
+    function renderBisogni(bisogni) {
         const container = document.getElementById('bisogni-container');
-        
-        if (!bisogniData || bisogniData.length === 0) {
+
+        if (!bisogni || bisogni.length === 0) {
             container.innerHTML = '<p class="text-muted">Nessun bisogno disponibile</p>';
             return;
         }
 
-        // Raggruppa bisogni per categoria
-        const bisogniPerCategoria = {};
-        bisogniData.forEach(bisogno => {
-            const categoria = bisogno.categoria_bisogno || 'Altro';
-            if (!bisogniPerCategoria[categoria]) {
-                bisogniPerCategoria[categoria] = [];
-            }
-            bisogniPerCategoria[categoria].push(bisogno);
-        });
-
-        // Ordina le categorie alfabeticamente
-        const categorieOrdinate = Object.keys(bisogniPerCategoria).sort();
-
-        // Crea le card per ogni categoria
-        const cards = categorieOrdinate.map(categoria => {
-            const bisogni = bisogniPerCategoria[categoria];
-            const numPersone = countPersonePerCategoria(categoria);
-            const categoriaId = categoria.replace(/\s+/g, '-').toLowerCase();
-
-            // Ordina i bisogni per numero di persone (decrescente)
-            const bisogniOrdinati = bisogni.map(bisogno => ({
-                ...bisogno,
-                numPersone: countPersonePerBisogno(bisogno._id)
-            })).sort((a, b) => b.numPersone - a.numPersone);
-
-            const chipsHtml = bisogniOrdinati.map(bisogno => {
-                const nomeBisogno = bisogno.nome_bisogno || 'N/A';
-                const descrizione = bisogno.descrizione_bisogno || '';
-                const numPersoneBisogno = bisogno.numPersone;
-                const badgeHtml = numPersoneBisogno > 0 
-                    ? `<span class="badge bg-primary ms-2" style="font-size: 0.75rem;">${numPersoneBisogno}</span>`
-                    : '';
-                return `
-                    <span class="badge bg-light text-dark border bisogno-chip" 
-                          data-categoria="${categoria}"
-                          data-nome="${nomeBisogno.toLowerCase()}"
-                          title="${descrizione}"
-                          style="cursor: pointer; margin: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.9rem;">
-                        ${nomeBisogno}
-                        ${badgeHtml}
-                    </span>
-                `;
-            }).join('');
-
-            // Chip "Nuovo bisogno"
-            const nuovaChip = `
-                <span class="badge bg-white text-muted bisogno-chip-new"
-                      style="cursor: pointer; margin: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.9rem;
-                             border: 1.5px dashed #aaa !important;"
-                      onclick="Bisogni.showCreateModal('${categoria.replace(/'/g, "\\'")}')">+ Nuovo bisogno</span>
-            `;
-
-            const colClass = currentView === 'list' ? 'col-12' : 'col-md-6 col-lg-4';
-            
+        const cards = bisogni.map(bisogno => {
+            const nome = bisogno.nome_bisogno || 'N/A';
+            const descrizione = bisogno.descrizione_bisogno || '';
+            const numPersone = bisogno.num_persone || 0;
+            const bisognoId = bisogno._id;
             return `
-                <div class="${colClass} mb-4 categoria-card-wrapper" data-categoria="${categoria.toLowerCase()}">
-                    <div class="card bisogno-categoria-card">
+                <div class="col-md-4 col-lg-3 mb-3 bisogno-card-wrapper" data-nome="${nome.toLowerCase()}" style="cursor: pointer;" onclick="window.location.href='/bisogno/${bisognoId}'">
+                    <div class="card h-100">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="card-title mb-0" style="cursor: pointer;" onclick="window.location.href='/categoria-bisogno/${encodeURIComponent(categoria)}'">${categoria}</h5>
-                                <span class="badge bg-primary">${numPersone} ${numPersone === 1 ? 'persona' : 'persone'}</span>
-                            </div>
-                            <input type="text" 
-                                   class="form-control form-control-sm mb-3 bisogno-filter" 
-                                   data-categoria="${categoriaId}"
-                                   placeholder="Filtra bisogni in questa categoria..."
-                                   style="max-width: 300px;">
-                            <div class="bisogni-chips-container ${currentView === 'grid' ? 'grid-view' : ''}" data-categoria="${categoriaId}">
-                                ${chipsHtml}${nuovaChip}
-                            </div>
+                            <h6 class="card-title">${nome}</h6>
+                            ${descrizione ? `<p class="card-text text-muted small">${descrizione}</p>` : ''}
+                            <span class="badge bg-primary">${numPersone} ${numPersone === 1 ? 'persona' : 'persone'}</span>
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
 
-        container.innerHTML = cards;
+        const newCard = `
+            <div class="col-md-4 col-lg-3 mb-3">
+                <div class="card h-100 border-2" style="border-style: dashed !important; cursor: pointer; min-height: 100px;"
+                     onclick="Bisogni.showCreateModal()">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center text-muted">
+                        <span style="font-size: 2rem;">+</span>
+                        <span>Nuovo bisogno</span>
+                    </div>
+                </div>
+            </div>
+        `;
 
-        // Setup filtri
-        setupFilters();
+        container.innerHTML = `<div class="row">${cards}${newCard}</div>`;
     }
 
     function normalizeName(value) {
@@ -173,17 +83,16 @@ const Bisogni = (() => {
     }
 
     function cleanName(value) {
-        // Solo trim e spazi multipli → singolo spazio (il nome viene salvato così come scritto)
         return value.trim().replace(/\s+/g, ' ');
     }
 
-    function showCreateModal(categoria) {
+    function showCreateModal() {
         const modalHtml = `
             <div class="modal fade" id="createBisognoModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">Nuovo bisogno — <em>${categoria}</em></h5>
+                            <h5 class="modal-title">Nuovo bisogno</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
@@ -273,7 +182,6 @@ const Bisogni = (() => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     nome_bisogno: nome,
-                    categoria_bisogno: categoria,
                     descrizione_bisogno: descrizione
                 })
             })
@@ -284,10 +192,11 @@ const Bisogni = (() => {
                         bisogniData.push({
                             _id: data.bisogno_id,
                             nome_bisogno: nome,
-                            categoria_bisogno: categoria,
-                            descrizione_bisogno: descrizione
+                            descrizione_bisogno: descrizione,
+                            num_persone: 0
                         });
-                        renderBisogni();
+                        bisogniData = sortBisogni(bisogniData);
+                        renderBisogni(bisogniData);
                     } else {
                         alert('Errore nella creazione del bisogno: ' + (data.error || 'errore sconosciuto'));
                         btnCrea.disabled = false;
@@ -305,176 +214,53 @@ const Bisogni = (() => {
         });
     }
 
-    function setupFilters() {
-        const filterInputs = document.querySelectorAll('.bisogno-filter');
-        
-        filterInputs.forEach(input => {
-            input.addEventListener('input', (e) => {
-                const filterText = e.target.value.toLowerCase();
-                const categoria = e.target.dataset.categoria;
-                const container = document.querySelector(`.bisogni-chips-container[data-categoria="${categoria}"]`);
-                const chips = container.querySelectorAll('.bisogno-chip');
-
-                chips.forEach(chip => {
-                    const nomeBisogno = chip.dataset.nome;
-                    if (nomeBisogno.includes(filterText)) {
-                        chip.style.display = 'inline-block';
-                    } else {
-                        chip.style.display = 'none';
-                    }
-                });
+    function setupGlobalSearch() {
+        const input = document.getElementById('globalSearchInput');
+        if (!input) return;
+        input.addEventListener('input', (e) => {
+            const searchText = e.target.value.toLowerCase().trim();
+            const wrappers = document.querySelectorAll('.bisogno-card-wrapper');
+            wrappers.forEach(wrapper => {
+                const nome = wrapper.dataset.nome || '';
+                wrapper.style.display = (!searchText || nome.includes(searchText)) ? '' : 'none';
             });
         });
     }
 
     function downloadCsv() {
         const today = new Date().toISOString().split('T')[0];
-        
-        if (!bisogniData || bisogniData.length === 0) {
-            alert('Nessun dato da esportare');
-            return;
-        }
-        
-        // Prepara le colonne
-        const headers = ['_id', 'nome_bisogno', 'categoria_bisogno', 'descrizione_bisogno'];
-        
-        // Crea CSV
-        const csvRows = [];
-        csvRows.push(headers.join(','));
-        
+        if (!bisogniData || bisogniData.length === 0) { alert('Nessun dato da esportare'); return; }
+        const headers = ['_id', 'nome_bisogno', 'descrizione_bisogno'];
+        const csvRows = [headers.join(',')];
         bisogniData.forEach(bisogno => {
-            const row = headers.map(header => {
-                const value = bisogno[header] || '';
-                // Escape virgole e virgolette
-                const escaped = String(value).replace(/"/g, '""');
-                return `"${escaped}"`;
-            });
+            const row = headers.map(h => `"${String(bisogno[h] || '').replace(/"/g, '""')}"`);
             csvRows.push(row.join(','));
         });
-        
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `bisogni_${today}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        a.href = url; a.download = `bisogni_${today}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     }
 
     function downloadJsonLines() {
         const today = new Date().toISOString().split('T')[0];
-        
-        if (!bisogniData || bisogniData.length === 0) {
-            alert('Nessun dato da esportare');
-            return;
-        }
-        
-        // Converti in JSON Lines (una riga JSON per record)
-        const jsonLines = bisogniData.map(record => JSON.stringify(record)).join('\n');
-        
-        // Crea e scarica il file
+        if (!bisogniData || bisogniData.length === 0) { alert('Nessun dato da esportare'); return; }
+        const jsonLines = bisogniData.map(r => JSON.stringify(r)).join('\n');
         const blob = new Blob([jsonLines], { type: 'application/jsonl' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `bisogni_${today}.jsonl`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        a.href = url; a.download = `bisogni_${today}.jsonl`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     }
 
     function setupExportButtons() {
         const exportCsvBtn = document.getElementById('exportCsvBtn');
         const exportJsonlBtn = document.getElementById('exportJsonlBtn');
-        
-        if (exportCsvBtn) {
-            exportCsvBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                downloadCsv();
-            });
-        }
-        
-        if (exportJsonlBtn) {
-            exportJsonlBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                downloadJsonLines();
-            });
-        }
-    }
-
-    function setupViewToggle() {
-        const viewListBtn = document.getElementById('viewListBtn');
-        const viewGridBtn = document.getElementById('viewGridBtn');
-        
-        // Imposta lo stato iniziale
-        viewListBtn.classList.add('active');
-        
-        viewListBtn.addEventListener('click', () => {
-            currentView = 'list';
-            viewListBtn.classList.add('active');
-            viewGridBtn.classList.remove('active');
-            renderBisogni();
-        });
-        
-        viewGridBtn.addEventListener('click', () => {
-            currentView = 'grid';
-            viewGridBtn.classList.add('active');
-            viewListBtn.classList.remove('active');
-            renderBisogni();
-        });
-    }
-
-    function setupGlobalSearch() {
-        const globalSearchInput = document.getElementById('globalSearchInput');
-        
-        if (!globalSearchInput) return;
-        
-        globalSearchInput.addEventListener('input', (e) => {
-            const searchText = e.target.value.toLowerCase().trim();
-            const cardWrappers = document.querySelectorAll('.categoria-card-wrapper');
-            
-            cardWrappers.forEach(wrapper => {
-                const categoria = wrapper.dataset.categoria;
-                const chipsContainer = wrapper.querySelector('.bisogni-chips-container');
-                const chips = chipsContainer.querySelectorAll('.bisogno-chip');
-                
-                if (!searchText) {
-                    // Nessun filtro: mostra tutto
-                    wrapper.style.display = '';
-                    chips.forEach(chip => chip.style.display = 'inline-block');
-                    return;
-                }
-                
-                // Verifica se la categoria matcha
-                const categoriaMatches = categoria.includes(searchText);
-                
-                if (categoriaMatches) {
-                    // Se la categoria matcha, mostra la card e tutte le chips
-                    wrapper.style.display = '';
-                    chips.forEach(chip => chip.style.display = 'inline-block');
-                } else {
-                    // Se la categoria non matcha, verifica le singole chips
-                    let hasVisibleChips = false;
-                    
-                    chips.forEach(chip => {
-                        const nomeBisogno = chip.dataset.nome;
-                        if (nomeBisogno.includes(searchText)) {
-                            chip.style.display = 'inline-block';
-                            hasVisibleChips = true;
-                        } else {
-                            chip.style.display = 'none';
-                        }
-                    });
-                    
-                    // Mostra la card solo se ha almeno una chip visibile
-                    wrapper.style.display = hasVisibleChips ? '' : 'none';
-                }
-            });
-        });
+        if (exportCsvBtn) exportCsvBtn.addEventListener('click', e => { e.preventDefault(); downloadCsv(); });
+        if (exportJsonlBtn) exportJsonlBtn.addEventListener('click', e => { e.preventDefault(); downloadJsonLines(); });
     }
 
     return { init, showCreateModal };

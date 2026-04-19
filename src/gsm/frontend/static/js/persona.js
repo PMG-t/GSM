@@ -195,7 +195,7 @@ const PersonaDetail = (() => {
         const bisogniItems = bisogniIds.map(id => {
             const bisognoObj = bisogniList.find(b => b._id === id);
             const nome = bisogniMap[id] || id;
-            const label = bisognoObj?.categoria_bisogno ? `${bisognoObj.categoria_bisogno} – ${nome}` : nome;
+            const label = nome;
             const aggiornamenti = personaData.bisogni[id] || [];
             return `
                 <div class="bisogno-item mb-3">
@@ -587,10 +587,6 @@ const PersonaDetail = (() => {
     }
 
     function showAddBisognoModal() {
-        // Estrai categorie uniche
-        const categorie = [...new Set(bisogniList.map(b => b.categoria_bisogno))].sort();
-        const categorieOptions = categorie.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-
         const modalHtml = `
             <div class="modal fade" id="addItemModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
@@ -600,18 +596,9 @@ const PersonaDetail = (() => {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="categoriaSelect" class="form-label">Categoria bisogno</label>
-                                <select id="categoriaSelect" class="form-select">
-                                    <option value="">-- Seleziona categoria --</option>
-                                    ${categorieOptions}
-                                </select>
-                            </div>
                             <div>
                                 <label for="bisognoSelect" class="form-label">Bisogno</label>
-                                <select id="bisognoSelect" class="form-select" disabled>
-                                    <option value="">-- Prima seleziona una categoria --</option>
-                                </select>
+                                <select id="bisognoSelect" class="form-select"></select>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -630,44 +617,20 @@ const PersonaDetail = (() => {
         const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
         modal.show();
 
-        // Inizializza TomSelect per categoria
-        const categoriaElement = document.getElementById('categoriaSelect');
-        const categoriaTomSelect = new TomSelect(categoriaElement, {
-            create: false,
-            sortField: 'text',
-            placeholder: 'Seleziona categoria...'
-        });
-
-        // Inizializza TomSelect per bisogno (disabilitato)
         const bisognoElement = document.getElementById('bisognoSelect');
-        let bisognoTomSelect = new TomSelect(bisognoElement, {
+        const tomSelect = new TomSelect(bisognoElement, {
             create: false,
             sortField: 'text',
-            placeholder: 'Seleziona bisogno...'
-        });
-        bisognoTomSelect.disable();
-
-        // Listener per cambio categoria
-        categoriaTomSelect.on('change', (categoria) => {
-            bisognoTomSelect.clear();
-            bisognoTomSelect.clearOptions();
-            
-            if (categoria) {
-                // Filtra bisogni per categoria
-                const bisogniFiltrati = bisogniList.filter(b => b.categoria_bisogno === categoria);
-                bisogniFiltrati.forEach(bisogno => {
-                    const nome = bisogniMap[bisogno._id];
-                    bisognoTomSelect.addOption({ value: bisogno._id, text: nome });
-                });
-                bisognoTomSelect.enable();
-            } else {
-                bisognoTomSelect.disable();
-            }
+            placeholder: 'Cerca bisogno...'
         });
 
-        // Aggiungi listener al bottone salva
+        bisogniList.forEach(bisogno => {
+            const nome = bisogniMap[bisogno._id];
+            tomSelect.addOption({ value: bisogno._id, text: nome });
+        });
+
         document.getElementById('btnSaveItem').addEventListener('click', () => {
-            const bisognoId = bisognoTomSelect.getValue();
+            const bisognoId = tomSelect.getValue();
             if (bisognoId) {
                 saveNewItem('bisogno', bisognoId);
                 modal.hide();
@@ -675,8 +638,7 @@ const PersonaDetail = (() => {
         });
 
         document.getElementById('addItemModal').addEventListener('hidden.bs.modal', function () {
-            categoriaTomSelect.destroy();
-            bisognoTomSelect.destroy();
+            tomSelect.destroy();
             this.remove();
         });
     }

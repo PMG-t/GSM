@@ -182,37 +182,6 @@ def servizi():
 def bisogni():
     return render_template('bisogni.html')
 
-@app.route('/categoria-bisogno/<categoria>')
-@require_db
-def categoria_bisogno(categoria):
-    return render_template('categoria-bisogno.html', categoria=categoria)
-
-@app.route('/dati_categoria_bisogno', methods=['POST'])
-@require_db
-def dati_categoria_bisogno():
-    try:
-        data = request.json
-        categoria = data.get('categoria')
-        
-        if not categoria:
-            return jsonify({'error': 'Missing categoria'}), 400
-        
-        persone = Q.QUERY_NAMES_MAP['persone_con_bisogno_categoria'](categoria)
-        aggiornamenti = Q.QUERY_NAMES_MAP['aggiornamenti_categoria_bisogno'](categoria)
-        
-        # Conta i bisogni nella categoria
-        bisogni_result = Q.QUERY_NAMES_MAP['bisogni']()
-        num_bisogni = len([b for b in bisogni_result['data'] if b.get('categoria_bisogno') == categoria])
-        
-        return jsonify({
-            'persone': persone,
-            'aggiornamenti': aggiornamenti,
-            'num_bisogni': num_bisogni
-        })
-    except Exception as e:
-        print(f"Error fetching dati categoria bisogno: {e}")
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/report')
 @require_db
 def report():
@@ -286,6 +255,41 @@ def dati_servizio():
     except Exception as e:
         print(f"Error fetching dati servizio: {e}")
         return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/bisogno/<bisogno_id>')
+@require_db
+def bisogno(bisogno_id):
+    try:
+        bisogno_data = Q.QUERY_NAMES_MAP['bisogno'](bisogno_id)
+        if not bisogno_data:
+            return "Bisogno non trovato", 404
+        return render_template('bisogno.html', bisogno=bisogno_data)
+    except Exception as e:
+        print(f"Error fetching bisogno: {e}")
+        return str(e), 500
+
+@app.route('/dati_bisogno', methods=['POST'])
+@require_db
+def dati_bisogno():
+    try:
+        data = request.json
+        bisogno_id = data.get('bisogno_id')
+        
+        if not bisogno_id:
+            return jsonify({'error': 'Missing bisogno_id'}), 400
+        
+        persone = Q.QUERY_NAMES_MAP['persone_con_bisogno'](bisogno_id)
+        aggiornamenti = Q.QUERY_NAMES_MAP['aggiornamenti_bisogno'](bisogno_id)
+        
+        return jsonify({
+            'persone': persone,
+            'aggiornamenti': aggiornamenti
+        })
+    except Exception as e:
+        print(f"Error fetching dati bisogno: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/new-persona')
 @require_db
@@ -459,15 +463,13 @@ def create_bisogno():
     try:
         data = request.json
         nome_bisogno = data.get('nome_bisogno')
-        categoria_bisogno = data.get('categoria_bisogno')
         descrizione_bisogno = data.get('descrizione_bisogno')
 
-        if not all([nome_bisogno, categoria_bisogno, descrizione_bisogno]):
+        if not all([nome_bisogno, descrizione_bisogno]):
             return jsonify({'error': 'Missing required fields'}), 400
 
         result = Q.QUERY_NAMES_MAP['create_bisogno'](
             nome_bisogno=nome_bisogno,
-            categoria_bisogno=categoria_bisogno,
             descrizione_bisogno=descrizione_bisogno
         )
         return jsonify(result)
@@ -627,6 +629,29 @@ def edit_servizio():
     except Exception as e:
         print(f"Error editing servizio: {e}")
         return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/edit-bisogno', methods=['POST'])
+@require_db
+def edit_bisogno():
+    try:
+        data = request.json
+        bisogno_id = data.get('bisogno_id')
+        nome_bisogno = data.get('nome_bisogno')
+        descrizione_bisogno = data.get('descrizione_bisogno')
+
+        if not all([bisogno_id, nome_bisogno, descrizione_bisogno]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        result = Q.QUERY_NAMES_MAP['update_bisogno'](
+            bisogno_id=bisogno_id,
+            nome_bisogno=nome_bisogno,
+            descrizione_bisogno=descrizione_bisogno
+        )
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error editing bisogno: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/delete-servizio', methods=['POST'])
 @require_db
@@ -640,6 +665,20 @@ def delete_servizio():
         return jsonify(result)
     except Exception as e:
         print(f"Error deleting servizio: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/delete-bisogno', methods=['POST'])
+@require_db
+def delete_bisogno():
+    try:
+        data = request.json
+        bisogno_id = data.get('bisogno_id')
+        if not bisogno_id:
+            return jsonify({'error': 'Missing bisogno_id'}), 400
+        result = Q.QUERY_NAMES_MAP['delete_bisogno'](bisogno_id=bisogno_id)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error deleting bisogno: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/remove-aggiornamento', methods=['POST'])
