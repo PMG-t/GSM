@@ -208,6 +208,8 @@ def api_global_search():
         results = Q.QUERY_NAMES_MAP['global_search'](fields_by_group, terms)
         return jsonify({'success': True, 'results': results, 'total': len(results)})
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         print(f"Error in global search: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1102,6 +1104,7 @@ def confirm_import_jsonl():
                         if line:
                             try:
                                 doc = json.loads(line)
+                                doc = {k:v for k,v in doc.items() if v} # Clean from empty, none fields
                                 if '_id' in doc:
                                     doc['_id'] = ObjectId(doc['_id'])   # Convert _id to ObjectId if present
                                 documents.append(doc)
