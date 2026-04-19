@@ -928,6 +928,79 @@ def import_excel():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/export-db')
+@require_db
+def export_db():
+    """
+    Esporta il database corrente in uno ZIP contenente file JSONL per ogni collection.
+    Collections esportate: persone, servizi, bisogni, monitor
+    """
+    import json
+    import zipfile
+    import tempfile
+    import os
+    from datetime import datetime
+    from io import BytesIO
+    from flask import send_file
+    
+    try:
+        db_name = DBI.get_db_name()
+        db = DBI.db
+        
+        # Crea un BytesIO per il file ZIP
+        zip_buffer = BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # Nomi delle collections da esportare
+            collections_to_export = ['persone', 'servizi', 'bisogni', 'monitor']
+            
+            for collection_name in collections_to_export:
+                try:
+                    # Recupera tutti i documenti della collection
+                    collection = db[collection_name]
+                    documents = list(collection.find())
+                    
+                    # Converte ObjectId a string per la serializzazione JSON
+                    jsonl_lines = []
+                    for doc in documents:
+                        # Converti ObjectId e altri tipi non serializzabili
+                        doc_str = json.dumps(doc, default=str)
+                        jsonl_lines.append(doc_str)
+                    
+                    # Crea il contenuto JSONL
+                    jsonl_content = '\n'.join(jsonl_lines)
+                    
+                    # Aggiungi il file al ZIP con nome descrittivo
+                    filename = f'{collection_name}.jsonl'
+                    zf.writestr(filename, jsonl_content)
+                    
+                except Exception as e:
+                    print(f"Error exporting collection '{collection_name}': {e}")
+                    # Continua con le altre collections anche se una fallisce
+                    continue
+        
+        # Rewind il buffer al inizio
+        zip_buffer.seek(0)
+        
+        # Genera il nome del file con data/ora e nome DB
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        zip_filename = f'export_{db_name}_{timestamp}.zip'
+        
+        # Restituisce il file ZIP per il download
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=zip_filename
+        )
+        
+    except Exception as e:
+        print(f"Error exporting database: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/q', methods=['POST'])
 @require_db
 def q():

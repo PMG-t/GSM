@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
 
-    <title>Importa Dati da Excel</title>
+    <title>Gestione Dati - Importa/Esporta</title>
 </head>
 
 <body>
@@ -26,79 +26,208 @@
     <div class="content">
 
         <div class="container">
-            <h1>Importa Dati da Excel</h1>
-            <p class="text-muted">Carica i file Excel di Sportello e Guardaroba per importare i dati nel database.</p>
+            <h1>Gestione Dati</h1>
+            <p class="text-muted">Importa dati da Excel o esporta il database completo in JSONL.</p>
 
-            <div class="alert alert-warning" role="alert">
-                <strong>⚠️ Attenzione:</strong> Questa operazione sovrascriverà i dati esistenti nel database. Assicurati di avere un backup prima di procedere.
-            </div>
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-import" data-bs-toggle="tab" data-bs-target="#import-section" type="button" role="tab">
+                        📥 Importa Dati
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-export" data-bs-toggle="tab" data-bs-target="#export-section" type="button" role="tab">
+                        📤 Esporta Database
+                    </button>
+                </li>
+            </ul>
 
-            <div class="card mt-4">
-                <div class="card-body">
-                    <h5 class="card-title mb-4">Carica File Excel</h5>
-                    
-                    <form id="importForm">
-                        <div class="mb-3">
-                            <label for="sportelloFile" class="form-label">File Sportello HR</label>
-                            <input type="file" class="form-control" id="sportelloFile" accept=".xlsx,.xls" required>
-                            <small class="form-text text-muted">Seleziona il file Excel degli accessi Sportello HR</small>
-                        </div>
+            <!-- Tab Content -->
+            <div class="tab-content">
 
-                        <div class="mb-3">
-                            <label for="guardarobaFile" class="form-label">File Guardaroba</label>
-                            <input type="file" class="form-control" id="guardarobaFile" accept=".xlsx,.xls" required>
-                            <small class="form-text text-muted">Seleziona il file Excel degli accessi Guardaroba</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="dbName" class="form-label">Nome Database</label>
-                            <input type="text" class="form-control" id="dbName" value="gs" required>
-                            <small class="form-text text-muted">Nome del database dove importare i dati</small>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <span id="btnText">Carica e Mostra Anteprima</span>
-                            <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
-                        </button>
-                    </form>
-
-                    <div id="progressSection" class="mt-4 d-none">
-                        <h6>Progresso</h6>
-                        <div class="progress" style="height: 25px;">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
-                        </div>
-                        <div id="progressMessage" class="mt-2 text-muted"></div>
+                <!-- SEZIONE IMPORTA -->
+                <div class="tab-pane fade show active" id="import-section" role="tabpanel">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>⚠️ Attenzione:</strong> Questa operazione sovrascriverà i dati esistenti nel database. Assicurati di avere un backup prima di procedere.
                     </div>
 
-                    <div id="resultSection" class="mt-4 d-none">
-                        <!-- Risultati dell'importazione verranno mostrati qui -->
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Carica File Excel</h5>
+                            
+                            <form id="importForm">
+                                <div class="mb-3">
+                                    <label for="sportelloFile" class="form-label">File Sportello HR</label>
+                                    <input type="file" class="form-control" id="sportelloFile" accept=".xlsx,.xls" required>
+                                    <small class="form-text text-muted">Seleziona il file Excel degli accessi Sportello HR</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="guardarobaFile" class="form-label">File Guardaroba</label>
+                                    <input type="file" class="form-control" id="guardarobaFile" accept=".xlsx,.xls" required>
+                                    <small class="form-text text-muted">Seleziona il file Excel degli accessi Guardaroba</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="dbName" class="form-label">Nome Database</label>
+                                    <input type="text" class="form-control" id="dbName" value="gs" required>
+                                    <small class="form-text text-muted">Nome del database dove importare i dati</small>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <span id="btnText">Carica e Mostra Anteprima</span>
+                                    <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                                </button>
+                            </form>
+
+                            <div id="progressSection" class="mt-4 d-none">
+                                <h6>Progresso</h6>
+                                <div class="progress" style="height: 25px;">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                                </div>
+                                <div id="progressMessage" class="mt-2 text-muted"></div>
+                            </div>
+
+                            <div id="resultSection" class="mt-4 d-none">
+                                <!-- Risultati dell'importazione verranno mostrati qui -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sezione Preview -->
+                    <div class="card mt-4 d-none" id="previewSection">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Anteprima Dati Persone</h5>
+                            <div class="alert alert-info mb-3">
+                                <strong>📊 Anteprima:</strong> Vengono mostrate le prime 200 righe. Controlla i dati prima di confermare l'importazione.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <p class="mb-2"><strong>Totale persone da importare:</strong> <span id="totalPersone" class="badge bg-primary">0</span></p>
+                                <p class="mb-2"><strong>Righe visualizzate:</strong> <span id="previewRows" class="badge bg-secondary">0</span></p>
+                            </div>
+
+                            <div id="preview-grid" class="ag-theme-alpine mb-3" style="height: 500px; width: 100%;"></div>
+
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-success" id="confirmImportBtn">
+                                    <span id="confirmBtnText">✓ Conferma Importazione</span>
+                                    <span id="confirmBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="cancelImportBtn">✕ Annulla</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Sezione Preview -->
-            <div class="card mt-4 d-none" id="previewSection">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Anteprima Dati Persone</h5>
-                    <div class="alert alert-info mb-3">
-                        <strong>📊 Anteprima:</strong> Vengono mostrate le prime 200 righe. Controlla i dati prima di confermare l'importazione.
-                    </div>
-                    
-                    <div class="mb-3">
-                        <p class="mb-2"><strong>Totale persone da importare:</strong> <span id="totalPersone" class="badge bg-primary">0</span></p>
-                        <p class="mb-2"><strong>Righe visualizzate:</strong> <span id="previewRows" class="badge bg-secondary">0</span></p>
+                <!-- SEZIONE ESPORTA -->
+                <div class="tab-pane fade" id="export-section" role="tabpanel">
+                    <div class="alert alert-info" role="alert">
+                        <strong>ℹ️ Esportazione:</strong> Scarica il database completo in formato JSONL compresso in ZIP. Ogni collection (persone, servizi, bisogni, monitor) sarà salvata in un file separato.
                     </div>
 
-                    <div id="preview-grid" class="ag-theme-alpine mb-3" style="height: 500px; width: 100%;"></div>
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Esporta Database</h5>
+                            
+                            <div class="mb-3">
+                                <p class="text-muted mb-3">Seleziona le collection da esportare:</p>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="exportPersone" checked>
+                                    <label class="form-check-label" for="exportPersone">
+                                        👥 Persone
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="exportServizi" checked>
+                                    <label class="form-check-label" for="exportServizi">
+                                        🏥 Servizi
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="exportBisogni" checked>
+                                    <label class="form-check-label" for="exportBisogni">
+                                        📋 Bisogni
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="exportMonitor" checked>
+                                    <label class="form-check-label" for="exportMonitor">
+                                        📊 Monitor
+                                    </label>
+                                </div>
+                            </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-success" id="confirmImportBtn">
-                            <span id="confirmBtnText">✓ Conferma Importazione</span>
-                            <span id="confirmBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="cancelImportBtn">✕ Annulla</button>
+                            <button type="button" class="btn btn-success" id="exportBtn">
+                                <span id="exportBtnText">📥 Scarica Export</span>
+                                <span id="exportBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                            </button>
+
+                            <div id="exportProgressSection" class="mt-4 d-none">
+                                <h6>Progresso Export</h6>
+                                <div class="progress" style="height: 25px;">
+                                    <div id="exportProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                                </div>
+                                <div id="exportProgressMessage" class="mt-2 text-muted"></div>
+                            </div>
+
+                            <div id="exportResultSection" class="mt-4 d-none">
+                                <div class="alert alert-success" role="alert">
+                                    <strong>✓ Esportazione completata!</strong> Il file ZIP è stato scaricato.
+                                </div>
+                            </div>
+
+                            <div id="exportErrorSection" class="mt-4 d-none">
+                                <div class="alert alert-danger" role="alert">
+                                    <strong>✕ Errore durante l'esportazione:</strong> <span id="exportErrorMessage"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Informazioni Export</h5>
+                            <div id="exportStatsSection" class="d-none">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <span class="display-4 text-primary" id="statPersone">0</span>
+                                            <div class="text-muted">Persone</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <span class="display-4 text-info" id="statServizi">0</span>
+                                            <div class="text-muted">Servizi</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <span class="display-4 text-warning" id="statBisogni">0</span>
+                                            <div class="text-muted">Bisogni</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <span class="display-4 text-secondary" id="statMonitor">0</span>
+                                            <div class="text-muted">Monitor</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="exportStatsLoading" class="text-center text-muted">
+                                <small>Le statistiche verranno caricate all'apertura della sezione esportazione.</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -107,6 +236,7 @@
     <script src="/static/libs/ag-grid/ag-grid-community.js"></script>
     <script src="/static/libs/bootstrap/bootstrap-5.3.0.js"></script>
     <script src="/static/js/import.js"></script>
+    <script src="/static/js/export.js"></script>
 </body>
 
 </html>
