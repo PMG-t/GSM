@@ -74,8 +74,7 @@ def bisogni(filters=dict(), projection=dict()):
     for persona in persone:
         if 'bisogni' in persona:
             for bisogno_id, aggiornamenti in persona['bisogni'].items():
-                if aggiornamenti:  # almeno un aggiornamento
-                    bisogni_count[bisogno_id] = bisogni_count.get(bisogno_id, 0) + 1
+                bisogni_count[bisogno_id] = bisogni_count.get(bisogno_id, 0) + 1
 
     for bisogno in bisogni:
         bisogno_id = str(bisogno['_id'])
