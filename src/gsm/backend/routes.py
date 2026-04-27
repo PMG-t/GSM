@@ -1,5 +1,6 @@
-import json
 import uuid
+import json
+import datetime
 from functools import wraps
 from bson import ObjectId
 from flask import render_template, request, jsonify, current_app as app, session, redirect, url_for
@@ -1093,6 +1094,14 @@ def confirm_import_jsonl():
         
         # Funzione per leggere e importare un JSONL
         def import_jsonl_collection(filepath, collection_name):
+
+            def parse_doc_persone(doc):
+                for aggiornamento_field in [nf for nf in ['servizi', 'bisogni', 'monitor'] if nf in doc]:
+                    for field_id, aggiornamenti in doc[aggiornamento_field].items():
+                        for note in aggiornamenti:
+                            note['data'] = datetime.datetime.fromisoformat(note['data'])
+                return doc
+
             count = 0
             try:
                 collection = db[collection_name]
@@ -1107,6 +1116,8 @@ def confirm_import_jsonl():
                                 doc = {k:v for k,v in doc.items() if v} # Clean from empty, none fields
                                 if '_id' in doc:
                                     doc['_id'] = ObjectId(doc['_id'])   # Convert _id to ObjectId if present
+                                if collection_name == 'persone':
+                                    doc = parse_doc_persone(doc)
                                 documents.append(doc)
                                 count += 1
                             except json.JSONDecodeError as je:

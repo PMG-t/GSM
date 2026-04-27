@@ -687,8 +687,7 @@ def tutti_aggiornamenti():
                         'tipo': 'bisogno',
                         'item_id': bisogno_id,
                         'item_nome': bisogno_nome,
-                        # 'data': agg['data'],
-                        'data': pd.to_datetime(agg['data']).isoformat(),
+                        'data': agg['data'],
                         'note': agg.get('note', '')
                     })
     
