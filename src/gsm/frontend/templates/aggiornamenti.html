@@ -35,8 +35,17 @@
                 </li>
             </ul>
 
-            <div class="mb-3">
+            <div class="mb-3 d-flex justify-content-between align-items-center gap-2">
                 <input type="text" id="searchInput" class="form-control" placeholder="Cerca...">
+                <div class="dropdown">
+                    <button class="btn btn-success dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="white-space: nowrap;">
+                        &#128229; Esporta
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                        <li><a class="dropdown-item" href="#" id="exportCsvBtn">&#128196; CSV</a></li>
+                        <li><a class="dropdown-item" href="#" id="exportJsonlBtn">&#128203; JSON Lines</a></li>
+                    </ul>
+                </div>
             </div>
 
             <div id="grid-aggiornamenti" class="ag-theme-alpine" style="height: 600px;"></div>

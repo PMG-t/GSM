@@ -1,7 +1,45 @@
 const GridAggiornamenti = (() => {
 
+    const _export_ordered_fields = [
+        // DOC: Persona
+        "persona_id",
+        // DOC: Aggiornamento
+        "data",
+        // DOC: Persona
+        "cognome",
+        "nome",
+        // DOC: Aggiornamento
+        "tipo",
+        "nome_aggiornamento",
+        "note",
+        // DOC: Persona
+        "data_inserimento",
+        "data_nascita",
+        "eta",
+        "luogo_nascita",
+        "citta",
+        "genere",
+        "documento",
+        "telefono",
+        "stato_civile",
+        "figli",
+        "condizione_abitativa",
+        "categoria_ethos",
+        "lavoro",
+        "in_carico_presso",
+        "istruzione",
+        "residenza",
+        "servizi_sociali",
+    ]
+
     let gridApi = null;
     let gridData = [];
+    let currentQuery = 'tutti_aggiornamenti';
+
+    const EXPORT_QUERY_MAP = {
+        'tutti_aggiornamenti': 'tutti_aggiornamenti_full',
+        'primi_accessi': 'primi_accessi_full'
+    };
 
     function init() {
         console.log('Inizializzazione griglia aggiornamenti');
@@ -17,6 +55,7 @@ const GridAggiornamenti = (() => {
     }
 
     function fetchData(queryName) {
+        currentQuery = queryName;
         const gridDiv = document.querySelector('#grid-aggiornamenti');
         gridDiv.style.visibility = 'hidden';
 
@@ -145,6 +184,7 @@ const GridAggiornamenti = (() => {
 
         const gridDiv = document.querySelector('#grid-aggiornamenti');
         agGrid.createGrid(gridDiv, gridOptions);
+        setupExportButtons();
     }
 
     function setupQuickFilter() {
@@ -152,6 +192,85 @@ const GridAggiornamenti = (() => {
         searchInput.addEventListener('input', (e) => {
             gridApi.setGridOption('quickFilterText', e.target.value);
         });
+    }
+
+    function setupExportButtons() {
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const exportJsonlBtn = document.getElementById('exportJsonlBtn');
+
+        exportCsvBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fetchFullData('csv');
+        });
+
+        exportJsonlBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fetchFullData('jsonl');
+        });
+    }
+
+    function fetchFullData(format) {
+        const exportQuery = EXPORT_QUERY_MAP[currentQuery] || 'tutti_aggiornamenti_full';
+        const today = new Date().toISOString().split('T')[0];
+        const prefix = currentQuery === 'primi_accessi' ? 'primi_accessi' : 'aggiornamenti';
+
+        return fetch('/q', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: exportQuery })
+        })
+            .then(r => r.json())
+            .then(result => {
+                const rows = result.data || [];
+                if (format === 'csv') {
+                    downloadCsvFromRows(rows, `${prefix}_${today}.csv`);
+                } else {
+                    downloadJsonlFromRows(rows, `${prefix}_${today}.jsonl`);
+                }
+            })
+            .catch(err => console.error('Errore export:', err));
+    }
+
+    function downloadCsvFromRows(rows, filename) {
+        if (!rows.length) return;
+        const cols = _export_ordered_fields
+        const escape = v => {
+            const s = v === null || v === undefined ? '' : String(v);
+            return s.includes(',') || s.includes('"') || s.includes('\n')
+                ? `"${s.replace(/"/g, '""')}"`
+                : s;
+        };
+        const header = cols.map(escape).join('\t');
+        const body = rows.map(row =>
+            cols.map(c => {
+                let val = row[c];
+                return escape(val);
+            }).join('\t')
+        ).join('\n');
+        triggerDownload(`${header}\n${body}`, filename, 'text/csv');
+    }
+
+    function downloadJsonlFromRows(rows, filename) {
+        const content = rows.map(r => JSON.stringify(
+            Object.fromEntries(
+                _export_ordered_fields
+                .filter(f => f in r)
+                .map(f => [f, r[f]])
+            )
+        )).join('\n');
+        triggerDownload(content, filename, 'application/jsonl');
+    }
+
+    function triggerDownload(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     }
 
     function showEditModal(personaId, tipo, itemId, dataISO, note, itemNome) {

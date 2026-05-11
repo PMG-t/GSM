@@ -729,6 +729,95 @@ def primi_accessi():
     }
 
 @q
+def tutti_aggiornamenti_full():
+    """
+    Like tutti_aggiornamenti but includes all scalar persona fields
+    (excluding 'servizi', 'bisogni', 'monitor').
+    """
+    EXCLUDED_KEYS = {'_id', 'servizi', 'bisogni', 'monitor'}
+
+    persone = list(DBI.db['persone'].find())
+
+    servizi_list = list(DBI.db['servizi'].find())
+    servizi_map = {str(s['_id']): s.get('descrizione_servizio') or s.get('nome_servizio') for s in servizi_list}
+
+    bisogni_list = list(DBI.db['bisogni'].find())
+    bisogni_map = {str(b['_id']): b.get('nome_bisogno') or b.get('descrizione_bisogno') for b in bisogni_list}
+
+    aggiornamenti_list = []
+
+    for persona in persone:
+        persona_id = str(persona['_id'])
+        base = {k: v for k, v in persona.items() if k not in EXCLUDED_KEYS}
+        base['persona_id'] = persona_id
+
+        if 'servizi' in persona:
+            for servizio_id, aggs in persona['servizi'].items():
+                servizio_nome = servizi_map.get(servizio_id, servizio_id)
+                for agg in aggs:
+                    record = dict(base)
+                    record.update({
+                        'tipo': 'servizio',
+                        # 'item_id': servizio_id,
+                        # 'item_nome': servizio_nome,
+                        'nome_aggiornamento': servizio_nome,
+                        'data': agg['data'].isoformat(),
+                        'note': agg.get('note', '')
+                    })
+                    aggiornamenti_list.append(record)
+
+        if 'bisogni' in persona:
+            for bisogno_id, aggs in persona['bisogni'].items():
+                bisogno_nome = bisogni_map.get(bisogno_id, bisogno_id)
+                for agg in aggs:
+                    record = dict(base)
+                    record.update({
+                        'tipo': 'bisogno',
+                        # 'item_id': bisogno_id,
+                        # 'item_nome': bisogno_nome,
+                        'nome_aggiornamento': bisogno_nome,
+                        'data': agg['data'].isoformat(),
+                        'note': agg.get('note', '')
+                    })
+                    aggiornamenti_list.append(record)
+
+    aggiornamenti_list.sort(key=lambda x: x['data'], reverse=True)
+
+    df = pd.DataFrame(aggiornamenti_list)
+    if df.empty:
+        return {'data': [], 'columns': []}
+    
+    df = df.where(pd.notnull(df), '')
+    return {
+        'data': df.to_dict(orient='records'),
+        'columns': list(df.columns)
+    }
+
+
+@q
+def primi_accessi_full():
+    """
+    Like primi_accessi but includes all scalar persona fields.
+    """
+    result = tutti_aggiornamenti_full()
+    data = result.get('data', [])
+    if not data:
+        return result
+
+    oldest = {}
+    for record in data:
+        pid = record['persona_id']
+        if pid not in oldest or record['data'] < oldest[pid]['data']:
+            oldest[pid] = record
+
+    filtered = sorted(oldest.values(), key=lambda x: x['data'], reverse=True)
+    return {
+        'data': filtered,
+        'columns': result.get('columns', [])
+    }
+
+
+@q
 def delete_aggiornamento(persona_id, tipo, item_id, data):
     """
     Deletes an aggiornamento from a servizio or bisogno for a persona.
